@@ -17,23 +17,49 @@ class SearchController {
 
 class ScreenUiController {
   final ValueNotifier<SortType> sortNotifier;
-  final ValueNotifier<bool> isGridNotifier;
+  final ValueNotifier<int> viewColumnsNotifier;
   final SearchController searchController;
 
   ScreenUiController({
     SortType initialSort = SortType.defaultSort,
-    bool initialIsGrid = true,
+    int initialViewColumns = 2,
     String initialSearch = '',
   }) : sortNotifier = ValueNotifier(initialSort),
-       isGridNotifier = ValueNotifier(initialIsGrid),
+       viewColumnsNotifier = ValueNotifier(initialViewColumns),
        searchController = SearchController(initialValue: initialSearch);
 
   void changeSort() {
     sortNotifier.value = AppSort.nextSort(sortNotifier.value);
   }
 
+  void setSort(SortType sortType) {
+    sortNotifier.value = sortType;
+  }
+
   void toggleView() {
-    isGridNotifier.value = !isGridNotifier.value;
+    switch (viewColumnsNotifier.value) {
+      case 1:
+        viewColumnsNotifier.value = 2;
+        break;
+      case 2:
+        viewColumnsNotifier.value = 3;
+        break;
+      default:
+        viewColumnsNotifier.value = 1;
+        break;
+    }
+  }
+
+  void setViewColumns(int columns) {
+    viewColumnsNotifier.value = columns.clamp(1, 3);
+  }
+
+  void setListView() {
+    viewColumnsNotifier.value = 1;
+  }
+
+  void cycleGridView() {
+    viewColumnsNotifier.value = viewColumnsNotifier.value == 2 ? 3 : 2;
   }
 
   void updateSearch(String query) {
@@ -45,7 +71,7 @@ class ScreenUiController {
   }
 
   IconData viewIcon() {
-    return AppView.iconFor(isGridNotifier.value);
+    return AppView.iconFor(viewColumnsNotifier.value);
   }
 }
 
@@ -57,13 +83,13 @@ class AppSort {
   };
 
   static final ScreenUiController liveCategoryController = ScreenUiController(
-    initialIsGrid: false,
+    initialViewColumns: 1,
   );
   static final ScreenUiController movieCategoryController = ScreenUiController(
-    initialIsGrid: false,
+    initialViewColumns: 1,
   );
   static final ScreenUiController seriesCategoryController = ScreenUiController(
-    initialIsGrid: false,
+    initialViewColumns: 1,
   );
 
   static ScreenUiController controller(ScreenSection section) {
@@ -93,6 +119,19 @@ class AppSort {
         return Icons.arrow_downward;
       case SortType.custome:
         return Icons.settings;
+    }
+  }
+
+  static String labelFor(SortType sortType) {
+    switch (sortType) {
+      case SortType.defaultSort:
+        return 'Default';
+      case SortType.asc:
+        return 'A-Z';
+      case SortType.desc:
+        return 'Z-A';
+      case SortType.custome:
+        return 'Custom';
     }
   }
 
@@ -157,15 +196,35 @@ class AppSort {
 
 class AppView {
   static const EdgeInsets contentPadding = EdgeInsets.all(12);
-  static const SliverGridDelegateWithFixedCrossAxisCount gridDelegate =
-      SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: 1.2,
-      );
+  static SliverGridDelegateWithFixedCrossAxisCount delegateFor(
+    int columns, {
+    bool poster = false,
+    bool densePoster = false,
+    bool denseTextGrid = false,
+  }) {
+    final resolvedColumns = columns < 2 ? 2 : columns;
+    return SliverGridDelegateWithFixedCrossAxisCount(
+      crossAxisCount: resolvedColumns,
+      crossAxisSpacing: 12,
+      mainAxisSpacing: poster ? 14 : 12,
+      childAspectRatio: poster
+          ? densePoster
+                ? (resolvedColumns == 2 ? 0.82 : 0.74)
+                : (resolvedColumns == 2 ? 0.72 : 0.62)
+          : denseTextGrid
+          ? (resolvedColumns == 2 ? 1.08 : 0.82)
+          : (resolvedColumns == 2 ? 1.2 : 0.96),
+    );
+  }
 
-  static IconData iconFor(bool isGrid) {
-    return isGrid ? Icons.grid_view : Icons.view_list;
+  static IconData iconFor(int columns) {
+    switch (columns) {
+      case 1:
+        return Icons.view_agenda_outlined;
+      case 2:
+        return Icons.grid_view_rounded;
+      default:
+        return Icons.grid_on_rounded;
+    }
   }
 }

@@ -7,6 +7,8 @@ import 'package:ztv_player/models/vod_movie.dart';
 import 'package:ztv_player/screens/movie_player_screen.dart';
 import 'package:ztv_player/services/movie_service.dart';
 import 'package:ztv_player/widgets/app_search_field.dart';
+import 'package:ztv_player/widgets/app_sort_button.dart';
+import 'package:ztv_player/widgets/app_view_mode_buttons.dart';
 import 'package:ztv_player/widgets/content_cards.dart';
 import 'package:ztv_player/widgets/empty_state.dart';
 
@@ -80,13 +82,15 @@ class _MovieCategoryScreenState extends State<MovieCategoryScreen> {
             ValueListenableBuilder(
               valueListenable: AppTheme.colorsNotifier,
               builder: (context, colors, _) {
-                return ValueListenableBuilder<bool>(
-                  valueListenable: controller.isGridNotifier,
-                  builder: (context, isGrid, _) {
-                    return IconButton(
-                      onPressed: controller.toggleView,
-                      icon: Icon(controller.viewIcon()),
-                      color: colors.bottomNavIcon,
+                return ValueListenableBuilder<int>(
+                  valueListenable: controller.viewColumnsNotifier,
+                  builder: (context, viewColumns, _) {
+                    return AppViewModeButtons(
+                      columns: viewColumns,
+                      iconColor: colors.bottomNavIcon,
+                      activeColor: colors.bottomNavSelectedIcon,
+                      onListSelected: controller.setListView,
+                      onGridSelected: controller.cycleGridView,
                     );
                   },
                 );
@@ -98,10 +102,10 @@ class _MovieCategoryScreenState extends State<MovieCategoryScreen> {
                 return ValueListenableBuilder<SortType>(
                   valueListenable: controller.sortNotifier,
                   builder: (context, sortType, _) {
-                    return IconButton(
-                      onPressed: controller.changeSort,
-                      icon: Icon(controller.sortIcon()),
-                      color: colors.bottomNavIcon,
+                    return AppSortButton(
+                      value: sortType,
+                      iconColor: colors.bottomNavIcon,
+                      onSelected: controller.setSort,
                     );
                   },
                 );
@@ -118,9 +122,9 @@ class _MovieCategoryScreenState extends State<MovieCategoryScreen> {
                 return ValueListenableBuilder<String>(
                   valueListenable: controller.searchController.notifier,
                   builder: (context, query, _) {
-                    return ValueListenableBuilder<bool>(
-                      valueListenable: controller.isGridNotifier,
-                      builder: (context, isGrid, _) {
+                    return ValueListenableBuilder<int>(
+                      valueListenable: controller.viewColumnsNotifier,
+                      builder: (context, viewColumns, _) {
                         final movies = movieService.getVisibleMovies(
                           categoryId: widget.category.id,
                           sortType: sortType,
@@ -134,16 +138,13 @@ class _MovieCategoryScreenState extends State<MovieCategoryScreen> {
                           );
                         }
 
-                        if (isGrid) {
+                        if (viewColumns > 1) {
                           return GridView.builder(
                             padding: AppView.contentPadding,
-                            gridDelegate:
-                                const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 3,
-                                  crossAxisSpacing: 12,
-                                  mainAxisSpacing: 14,
-                                  childAspectRatio: 0.62,
-                                ),
+                            gridDelegate: AppView.delegateFor(
+                              viewColumns,
+                              poster: true,
+                            ),
                             itemCount: movies.length,
                             itemBuilder: (context, index) {
                               final movie = movies[index];

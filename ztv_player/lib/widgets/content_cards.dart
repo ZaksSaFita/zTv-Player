@@ -102,7 +102,7 @@ class AppGridCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
         ),
         child: Padding(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(10),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -114,8 +114,8 @@ class AppGridCard extends StatelessWidget {
                 height: 44,
                 radius: 12,
               ),
-              const SizedBox(height: 8),
-              Flexible(
+              const SizedBox(height: 6),
+              Expanded(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   mainAxisSize: MainAxisSize.min,
@@ -127,12 +127,13 @@ class AppGridCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 15,
+                        fontSize: 14,
                         fontWeight: FontWeight.w600,
+                        height: 1.1,
                       ),
                     ),
                     if (subtitle != null) ...[
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 4),
                       Text(
                         subtitle!,
                         textAlign: TextAlign.center,
@@ -140,7 +141,7 @@ class AppGridCard extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: Colors.grey,
-                          fontSize: 12,
+                          fontSize: 11,
                         ),
                       ),
                     ],

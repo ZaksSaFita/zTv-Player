@@ -6,6 +6,8 @@ import 'package:ztv_player/screens/movies_screen.dart';
 import 'package:ztv_player/screens/series_screen.dart';
 import 'package:ztv_player/screens/settings_screen.dart';
 import 'package:ztv_player/widgets/app_search_field.dart';
+import 'package:ztv_player/widgets/app_sort_button.dart';
+import 'package:ztv_player/widgets/app_view_mode_buttons.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -66,9 +68,7 @@ class _MainScreenState extends State<MainScreen> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: !_showContentActions
-            ? Text(_titles[_selectedIndex])
-            : null,
+        title: !_showContentActions ? Text(_titles[_selectedIndex]) : null,
         bottom: _showContentActions && _isSearchOpen
             ? PreferredSize(
                 preferredSize: const Size.fromHeight(64),
@@ -105,21 +105,24 @@ class _MainScreenState extends State<MainScreen> {
               },
             ),
           if (_showContentActions)
-            ValueListenableBuilder<bool>(
-              valueListenable: controller.isGridNotifier,
-              builder: (context, isGrid, _) {
+            ValueListenableBuilder<int>(
+              valueListenable: controller.viewColumnsNotifier,
+              builder: (context, columns, _) {
                 return ValueListenableBuilder(
                   valueListenable: AppTheme.colorsNotifier,
                   builder: (context, colors, _) {
-                    return IconButton(
-                      onPressed: () {
-                        controller.toggleView();
+                    return AppViewModeButtons(
+                      columns: columns,
+                      iconColor: colors.bottomNavIcon,
+                      activeColor: colors.bottomNavSelectedIcon,
+                      onListSelected: () {
+                        controller.setListView();
                         setState(() => _selectedActionIcon = 0);
                       },
-                      icon: Icon(controller.viewIcon()),
-                      color: _selectedActionIcon == 0
-                          ? colors.bottomNavSelectedIcon
-                          : colors.bottomNavIcon,
+                      onGridSelected: () {
+                        controller.cycleGridView();
+                        setState(() => _selectedActionIcon = 0);
+                      },
                     );
                   },
                 );
@@ -132,15 +135,15 @@ class _MainScreenState extends State<MainScreen> {
                 return ValueListenableBuilder(
                   valueListenable: AppTheme.colorsNotifier,
                   builder: (context, colors, _) {
-                    return IconButton(
-                      onPressed: () {
-                        controller.changeSort();
-                        setState(() => _selectedActionIcon = 1);
-                      },
-                      icon: Icon(controller.sortIcon()),
-                      color: _selectedActionIcon == 1
+                    return AppSortButton(
+                      value: sortType,
+                      iconColor: _selectedActionIcon == 1
                           ? colors.bottomNavSelectedIcon
                           : colors.bottomNavIcon,
+                      onSelected: (value) {
+                        controller.setSort(value);
+                        setState(() => _selectedActionIcon = 1);
+                      },
                     );
                   },
                 );
@@ -150,12 +153,65 @@ class _MainScreenState extends State<MainScreen> {
             ValueListenableBuilder(
               valueListenable: AppTheme.colorsNotifier,
               builder: (context, colors, _) {
-                return IconButton(
-                  onPressed: () => setState(() => _selectedActionIcon = 2),
-                  icon: const Icon(Icons.settings),
-                  color: _selectedActionIcon == 2
-                      ? colors.bottomNavSelectedIcon
-                      : colors.bottomNavIcon,
+                return PopupMenuButton<String>(
+                  tooltip: 'More',
+                  onSelected: (_) {
+                    setState(() => _selectedActionIcon = 2);
+                  },
+                  icon: Icon(
+                    Icons.more_vert,
+                    color: _selectedActionIcon == 2
+                        ? colors.bottomNavSelectedIcon
+                        : colors.bottomNavIcon,
+                  ),
+                  itemBuilder: (context) => const [
+                    PopupMenuItem<String>(
+                      value: 'edit',
+                      enabled: false,
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.edit_outlined,
+                            size: 18,
+                            color: Colors.white38,
+                          ),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'Edit (Premium)',
+                              style: TextStyle(
+                                color: Colors.white38,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem<String>(
+                      value: 'reorganize',
+                      enabled: false,
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.reorder_rounded,
+                            size: 18,
+                            color: Colors.white38,
+                          ),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'Reorganize (Premium)',
+                              style: TextStyle(
+                                color: Colors.white38,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 );
               },
             ),

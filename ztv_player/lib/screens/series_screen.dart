@@ -24,9 +24,9 @@ class SeriesScreen extends StatelessWidget {
             return ValueListenableBuilder<String>(
               valueListenable: controller.searchController.notifier,
               builder: (context, query, _) {
-                return ValueListenableBuilder<bool>(
-                  valueListenable: controller.isGridNotifier,
-                  builder: (context, isGrid, _) {
+                return ValueListenableBuilder<int>(
+                  valueListenable: controller.viewColumnsNotifier,
+                  builder: (context, viewColumns, _) {
                     final categories = seriesService.getVisibleCategories(
                       sortType: sortType,
                       query: query,
@@ -40,10 +40,10 @@ class SeriesScreen extends StatelessWidget {
                       );
                     }
 
-                    if (isGrid) {
+                    if (viewColumns > 1) {
                       return GridView.builder(
                         padding: AppView.contentPadding,
-                        gridDelegate: AppView.gridDelegate,
+                        gridDelegate: AppView.delegateFor(viewColumns),
                         itemCount: categories.length,
                         itemBuilder: (context, index) {
                           final category = categories[index];
