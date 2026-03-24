@@ -19,7 +19,8 @@ class LiveChannelPlayerScreen extends StatefulWidget {
   final EpgService epgService;
 
   @override
-  State<LiveChannelPlayerScreen> createState() => _LiveChannelPlayerScreenState();
+  State<LiveChannelPlayerScreen> createState() =>
+      _LiveChannelPlayerScreenState();
 }
 
 class _LiveChannelPlayerScreenState extends State<LiveChannelPlayerScreen> {
@@ -27,12 +28,14 @@ class _LiveChannelPlayerScreenState extends State<LiveChannelPlayerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Ovdje biras sta player pusta: live stream ili selektovanu archive stavku.
     final streamUrl = _selectedArchiveListing == null
         ? widget.playbackService.resolveLiveStreamUrl(widget.channel)
         : widget.playbackService.resolveArchiveStreamUrl(
             channel: widget.channel,
             listing: _selectedArchiveListing!,
           );
+    // Ovdje podesis naslov detail screena/AppBar-a.
     final title = _selectedArchiveListing?.title.isNotEmpty == true
         ? _selectedArchiveListing!.title
         : widget.channel.name;
@@ -82,6 +85,7 @@ class _LiveChannelDetailContent extends StatelessWidget {
       length: 2,
       child: Column(
         children: [
+          // Ovdje podesis gornje tabove za content koji ide ispod playera.
           Container(
             color: const Color(0xFF23232D),
             child: const TabBar(
@@ -97,6 +101,7 @@ class _LiveChannelDetailContent extends StatelessWidget {
           Expanded(
             child: TabBarView(
               children: [
+                // LIVE TAB: ovdje slazes sve komponente koje zelis ispod playera za live sadrzaj.
                 FutureBuilder<List<EpgListing>>(
                   future: epgService.getShortEpg(streamId: channel.id),
                   builder: (context, snapshot) {
@@ -105,38 +110,7 @@ class _LiveChannelDetailContent extends StatelessWidget {
                     return ListView(
                       padding: const EdgeInsets.all(16),
                       children: [
-                        _NowPlayingTile(
-                          channel: channel,
-                          streamAvailable: streamAvailable,
-                          selectedArchiveListing: selectedArchiveListing,
-                          onPlayLive: onLiveSelected,
-                        ),
-                        const SizedBox(height: 16),
-                        _InfoRow(
-                          label: 'Channel',
-                          value: channel.num?.toString() ?? '-',
-                        ),
-                        _InfoRow(
-                          label: 'Category ID',
-                          value: channel.categoryId,
-                        ),
-                        _InfoRow(label: 'Stream ID', value: channel.id),
-                        _InfoRow(
-                          label: 'Status',
-                          value: streamAvailable
-                              ? 'Ready for playback'
-                              : 'No playable source found',
-                        ),
-                        const SizedBox(height: 20),
-                        const Text(
-                          'EPG',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
+                        // Ovdje dodajes ili mijenjas pojedinacne content komponente u Live tabu.
                         if (snapshot.connectionState == ConnectionState.waiting)
                           const Center(
                             child: Padding(
@@ -147,11 +121,13 @@ class _LiveChannelDetailContent extends StatelessWidget {
                         else if (snapshot.hasError || listings.isEmpty)
                           const _EmptyEpgState()
                         else
+                          // Ovdje se renderuje lista EPG kartica.
                           ...listings.map(_EpgTile.new),
                       ],
                     );
                   },
                 ),
+                // ARCHIVE TAB: ovdje slazes sadrzaj za gledanje unazad.
                 FutureBuilder<List<EpgListing>>(
                   future: epgService.getArchiveEpg(streamId: channel.id),
                   builder: (context, snapshot) {
@@ -161,9 +137,7 @@ class _LiveChannelDetailContent extends StatelessWidget {
                         .toList();
 
                     if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(
-                        child: CircularProgressIndicator(),
-                      );
+                      return const Center(child: CircularProgressIndicator());
                     }
 
                     if (snapshot.hasError || archiveListings.isEmpty) {
@@ -187,6 +161,7 @@ class _LiveChannelDetailContent extends StatelessWidget {
                       itemCount: archiveListings.length,
                       itemBuilder: (context, index) {
                         final listing = archiveListings[index];
+                        // Ovdje podesis kako izgleda i radi jedna archive stavka.
                         return _ArchiveTile(
                           listing: listing,
                           isSelected: selectedArchiveListing?.id == listing.id,
@@ -213,15 +188,15 @@ class _EpgTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
-    final isCurrent =
-        !now.isBefore(listing.start) && now.isBefore(listing.end);
+    final isCurrent = !now.isBefore(listing.start) && now.isBefore(listing.end);
 
+    // Ovdje podesis izgled jedne EPG stavke u Live tabu.
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: const Color(0xFF2B2B35),
-        borderRadius: BorderRadius.circular(14),
+        // borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: isCurrent ? Colors.amber : Colors.transparent,
         ),
@@ -301,15 +276,16 @@ class _ArchiveTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Ovdje podesis izgled jedne archive stavke i aktivni highlight border.
     return InkWell(
-      borderRadius: BorderRadius.circular(14),
+      //borderRadius: BorderRadius.circular(14),
       onTap: onTap,
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: const Color(0xFF2B2B35),
-          borderRadius: BorderRadius.circular(14),
+          //   borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: isSelected ? Colors.amber : Colors.transparent,
           ),
@@ -374,6 +350,7 @@ class _NowPlayingTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final isArchiveMode = selectedArchiveListing != null;
 
+    // Ovdje podesis gornju info karticu ispod playera.
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -398,8 +375,8 @@ class _NowPlayingTile extends StatelessWidget {
             !streamAvailable
                 ? 'Playable source is missing for this channel.'
                 : isArchiveMode
-                    ? '${_formatTime(selectedArchiveListing!.start)} - ${_formatTime(selectedArchiveListing!.end)}'
-                    : 'Playback is available. Use player controls for play and fullscreen.',
+                ? '${_formatTime(selectedArchiveListing!.start)} - ${_formatTime(selectedArchiveListing!.end)}'
+                : 'Playback is available. Use player controls for play and fullscreen.',
             style: const TextStyle(color: Colors.white70),
           ),
           if (isArchiveMode) ...[
@@ -430,6 +407,7 @@ class _InfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Ovdje podesis jedan red pomocnih informacija: label lijevo, value desno.
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
@@ -445,10 +423,7 @@ class _InfoRow extends StatelessWidget {
             ),
           ),
           Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(color: Colors.white),
-            ),
+            child: Text(value, style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),

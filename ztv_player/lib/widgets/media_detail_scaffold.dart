@@ -14,6 +14,16 @@ class MediaDetailScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isLandscape =
+        MediaQuery.of(context).orientation == Orientation.landscape;
+
+    if (isLandscape) {
+      return Scaffold(
+        backgroundColor: Colors.black,
+        body: SizedBox.expand(child: player),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
