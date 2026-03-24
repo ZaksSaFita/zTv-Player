@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:media_kit/media_kit.dart' hide Playlist;
 import 'package:ztv_player/helpers/theme.dart';
 import 'package:ztv_player/models/episode.dart';
+import 'package:ztv_player/models/epg_listing.dart';
 import 'package:ztv_player/models/live_category.dart';
 import 'package:ztv_player/models/live_channel.dart';
 import 'package:ztv_player/models/playlist.dart';
@@ -10,11 +12,12 @@ import 'package:ztv_player/models/series.dart';
 import 'package:ztv_player/models/series_category.dart';
 import 'package:ztv_player/models/vod_category.dart';
 import 'package:ztv_player/models/vod_movie.dart';
-import 'package:ztv_player/screens/playlist_screen/create_playlist_screen.dart';
+import 'package:ztv_player/screens/create_playlist_screen.dart';
 import 'package:ztv_player/screens/layout_screen/main_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  MediaKit.ensureInitialized();
 
   // === HIVE INIT ===
   await Hive.initFlutter(); // ovo je najvažnije
@@ -22,6 +25,7 @@ void main() async {
 
   // === REGISTRACIJA SVIH ADAPTERA ===
   Hive.registerAdapter(PlaylistAdapter());
+  Hive.registerAdapter(EpgListingAdapter());
   Hive.registerAdapter(LiveCategoryAdapter());
   Hive.registerAdapter(LiveChannelAdapter());
   Hive.registerAdapter(VodCategoryAdapter());
@@ -172,10 +176,14 @@ class _MyHomePageState extends State<MyHomePage> {
                 },
                 style: ElevatedButton.styleFrom(
                   textStyle: const TextStyle(fontSize: 18),
+                  backgroundColor: Colors.white,
                 ),
                 child: Text(
                   "Create your playlist",
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
                 ),
               ),
             ],

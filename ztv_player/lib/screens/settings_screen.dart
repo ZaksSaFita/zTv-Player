@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:ztv_player/helpers/theme.dart';
 import 'package:ztv_player/models/playlist.dart';
-import 'package:ztv_player/screens/playlist_screen/create_playlist_screen.dart';
+import 'package:ztv_player/screens/create_playlist_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});

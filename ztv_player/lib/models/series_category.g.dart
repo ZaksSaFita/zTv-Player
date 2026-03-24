@@ -42,3 +42,19 @@ class SeriesCategoryAdapter extends TypeAdapter<SeriesCategory> {
           runtimeType == other.runtimeType &&
           typeId == other.typeId;
 }
+
+// **************************************************************************
+// JsonSerializableGenerator
+// **************************************************************************
+
+SeriesCategory _$SeriesCategoryFromJson(Map<String, dynamic> json) =>
+    SeriesCategory(
+      id: SeriesCategory._idFromJson(json['category_id']),
+      name: json['category_name'] as String? ?? 'Unknown',
+    );
+
+Map<String, dynamic> _$SeriesCategoryToJson(SeriesCategory instance) =>
+    <String, dynamic>{
+      'category_id': instance.id,
+      'category_name': instance.name,
+    };

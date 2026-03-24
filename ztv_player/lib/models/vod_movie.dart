@@ -1,30 +1,37 @@
-// lib/models/vod_movie.dart
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:json_annotation/json_annotation.dart';
+import 'package:ztv_player/helpers/json_helpers.dart';
 
 part 'vod_movie.g.dart';
 
 @HiveType(typeId: 4)
+@JsonSerializable()
 class VodMovie extends HiveObject {
   @HiveField(0)
-  final String id; // stream_id
+  @JsonKey(name: 'stream_id', fromJson: _idFromJson)
+  final String id;
 
   @HiveField(1)
   final String name;
 
   @HiveField(2)
+  @JsonKey(name: 'category_id', fromJson: _idFromJson)
   final String categoryId;
 
   @HiveField(3)
+  @JsonKey(name: 'stream_icon')
   final String? logoUrl;
 
   @HiveField(4)
-  final String? streamUrl; // pun URL za play
+  @JsonKey(name: 'direct_source')
+  final String? streamUrl;
 
   @HiveField(5)
-  final String? plot; // opis filma (opcionalno)
+  final String? plot;
 
   @HiveField(6)
-  final String? year; // godina
+  @JsonKey(name: 'releaseDate', fromJson: JsonHelpers.yearFromDate)
+  final String? year;
 
   VodMovie({
     required this.id,
@@ -35,4 +42,11 @@ class VodMovie extends HiveObject {
     this.plot,
     this.year,
   });
+
+  factory VodMovie.fromJson(Map<String, dynamic> json) => _$VodMovieFromJson(json);
+
+  Map<String, dynamic> toJson() => _$VodMovieToJson(this);
+
+  static String _idFromJson(dynamic value) =>
+      JsonHelpers.asString(value, fallback: '0');
 }

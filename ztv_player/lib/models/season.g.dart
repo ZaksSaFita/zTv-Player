@@ -42,3 +42,19 @@ class SeasonAdapter extends TypeAdapter<Season> {
           runtimeType == other.runtimeType &&
           typeId == other.typeId;
 }
+
+// **************************************************************************
+// JsonSerializableGenerator
+// **************************************************************************
+
+Season _$SeasonFromJson(Map<String, dynamic> json) => Season(
+      seasonNumber: (json['season_number'] as num).toInt(),
+      episodes: json['episodes'] == null
+          ? []
+          : Season._episodesFromJson(json['episodes']),
+    );
+
+Map<String, dynamic> _$SeasonToJson(Season instance) => <String, dynamic>{
+      'season_number': instance.seasonNumber,
+      'episodes': instance.episodes.map((e) => e.toJson()).toList(),
+    };

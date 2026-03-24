@@ -54,3 +54,25 @@ class SeriesAdapter extends TypeAdapter<Series> {
           runtimeType == other.runtimeType &&
           typeId == other.typeId;
 }
+
+// **************************************************************************
+// JsonSerializableGenerator
+// **************************************************************************
+
+Series _$SeriesFromJson(Map<String, dynamic> json) => Series(
+      id: Series._idFromJson(json['series_id']),
+      name: json['name'] as String,
+      categoryId: Series._idFromJson(json['category_id']),
+      logoUrl: json['cover'] as String?,
+      plot: json['plot'] as String?,
+      year: JsonHelpers.yearFromDate(json['releaseDate']),
+    );
+
+Map<String, dynamic> _$SeriesToJson(Series instance) => <String, dynamic>{
+      'series_id': instance.id,
+      'name': instance.name,
+      'category_id': instance.categoryId,
+      'cover': instance.logoUrl,
+      'plot': instance.plot,
+      'releaseDate': instance.year,
+    };

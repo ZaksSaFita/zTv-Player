@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class AppListCard extends StatelessWidget {
   final String title;
@@ -178,12 +179,17 @@ class _CardVisual extends StatelessWidget {
     if (imageUrl != null && imageUrl!.isNotEmpty) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(radius),
-        child: Image.network(
-          imageUrl!,
+        child: CachedNetworkImage(
+          imageUrl: imageUrl!,
           width: width,
           height: height,
           fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) {
+          placeholder: (context, url) => _LoadingVisual(
+            width: width,
+            height: height,
+            radius: radius,
+          ),
+          errorWidget: (context, url, error) {
             return _FallbackVisual(
               fallbackIcon: fallbackIcon,
               accentColor: accentColor,
@@ -202,6 +208,36 @@ class _CardVisual extends StatelessWidget {
       width: width,
       height: height,
       radius: radius,
+    );
+  }
+}
+
+class _LoadingVisual extends StatelessWidget {
+  final double width;
+  final double height;
+  final double radius;
+
+  const _LoadingVisual({
+    required this.width,
+    required this.height,
+    required this.radius,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: Colors.white10,
+        borderRadius: BorderRadius.circular(radius),
+      ),
+      alignment: Alignment.center,
+      child: const SizedBox(
+        width: 18,
+        height: 18,
+        child: CircularProgressIndicator(strokeWidth: 2),
+      ),
     );
   }
 }
@@ -227,7 +263,7 @@ class _FallbackVisual extends StatelessWidget {
       width: width,
       height: height,
       decoration: BoxDecoration(
-        color: accentColor.withOpacity(0.25),
+        color: accentColor.withValues(alpha: 0.25),
         borderRadius: BorderRadius.circular(radius),
       ),
       child: Icon(

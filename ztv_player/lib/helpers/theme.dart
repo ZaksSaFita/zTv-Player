@@ -134,7 +134,6 @@ class AppTheme {
         );
       // Dark (Default)
       case AppThemeType.dark:
-      default:
         return ThemeColors(
           appBarBackground: const Color(0xFF141414),
           appBarText: Color(0xFF8590F5),

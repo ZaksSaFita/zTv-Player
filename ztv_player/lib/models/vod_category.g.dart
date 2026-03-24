@@ -45,3 +45,18 @@ class VodCategoryAdapter extends TypeAdapter<VodCategory> {
           runtimeType == other.runtimeType &&
           typeId == other.typeId;
 }
+
+// **************************************************************************
+// JsonSerializableGenerator
+// **************************************************************************
+
+VodCategory _$VodCategoryFromJson(Map<String, dynamic> json) => VodCategory(
+      id: VodCategory._idFromJson(json['category_id']),
+      name: json['category_name'] as String? ?? 'Unknown',
+    );
+
+Map<String, dynamic> _$VodCategoryToJson(VodCategory instance) =>
+    <String, dynamic>{
+      'category_id': instance.id,
+      'category_name': instance.name,
+    };

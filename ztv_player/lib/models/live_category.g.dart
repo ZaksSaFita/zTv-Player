@@ -45,3 +45,18 @@ class LiveCategoryAdapter extends TypeAdapter<LiveCategory> {
           runtimeType == other.runtimeType &&
           typeId == other.typeId;
 }
+
+// **************************************************************************
+// JsonSerializableGenerator
+// **************************************************************************
+
+LiveCategory _$LiveCategoryFromJson(Map<String, dynamic> json) => LiveCategory(
+      id: _liveCategoryIdFromJson(json['category_id']),
+      name: json['category_name'] as String? ?? 'Unknown',
+    );
+
+Map<String, dynamic> _$LiveCategoryToJson(LiveCategory instance) =>
+    <String, dynamic>{
+      'category_id': instance.id,
+      'category_name': instance.name,
+    };

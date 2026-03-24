@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:ztv_player/helpers/sort.dart';
 import 'package:ztv_player/helpers/theme.dart';
-import 'package:ztv_player/screens/livetv_screen/livetv_screen.dart';
-import 'package:ztv_player/screens/movies_screen/movies_screen.dart';
-import 'package:ztv_player/screens/series_screen/series_screen.dart';
-import 'package:ztv_player/screens/settings_screen/settings_screen.dart';
+import 'package:ztv_player/screens/livetv_screen.dart';
+import 'package:ztv_player/screens/movies_screen.dart';
+import 'package:ztv_player/screens/series_screen.dart';
+import 'package:ztv_player/screens/settings_screen.dart';
+import 'package:ztv_player/widgets/app_search_field.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -41,6 +42,21 @@ class _MainScreenState extends State<MainScreen> {
 
   bool get _showContentActions => _selectedIndex <= 2;
 
+  void _onTabSelected(int index) {
+    if (index == _selectedIndex) {
+      return;
+    }
+
+    if (_selectedIndex <= 2) {
+      AppSort.controller(_currentSection).updateSearch('');
+    }
+
+    setState(() {
+      _selectedIndex = index;
+      _selectedActionIcon = null;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final controller = AppSort.controller(_currentSection);
@@ -48,7 +64,18 @@ class _MainScreenState extends State<MainScreen> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text(_titles[_selectedIndex]),
+        title: _showContentActions
+            ? ValueListenableBuilder<String>(
+                valueListenable: controller.searchController.notifier,
+                builder: (context, query, _) {
+                  return AppSearchField(
+                    value: query,
+                    hintText: 'Search ${_titles[_selectedIndex]}',
+                    onChanged: controller.updateSearch,
+                  );
+                },
+              )
+            : Text(_titles[_selectedIndex]),
         actions: [
           if (_showContentActions)
             ValueListenableBuilder<bool>(
@@ -92,24 +119,25 @@ class _MainScreenState extends State<MainScreen> {
                 );
               },
             ),
-          ValueListenableBuilder(
-            valueListenable: AppTheme.colorsNotifier,
-            builder: (context, colors, _) {
-              return IconButton(
-                onPressed: () => setState(() => _selectedActionIcon = 2),
-                icon: const Icon(Icons.settings),
-                color: _selectedActionIcon == 2
-                    ? colors.appBarSelectedIcon
-                    : colors.appBarIcon,
-              );
-            },
-          ),
+          if (_showContentActions)
+            ValueListenableBuilder(
+              valueListenable: AppTheme.colorsNotifier,
+              builder: (context, colors, _) {
+                return IconButton(
+                  onPressed: () => setState(() => _selectedActionIcon = 2),
+                  icon: const Icon(Icons.settings),
+                  color: _selectedActionIcon == 2
+                      ? colors.appBarSelectedIcon
+                      : colors.appBarIcon,
+                );
+              },
+            ),
         ],
       ),
       body: _pages[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
-        onTap: (index) => setState(() => _selectedIndex = index),
+        onTap: _onTabSelected,
         type: BottomNavigationBarType.fixed,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.live_tv), label: 'Live'),

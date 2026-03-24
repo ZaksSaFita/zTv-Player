@@ -54,3 +54,26 @@ class LiveChannelAdapter extends TypeAdapter<LiveChannel> {
           runtimeType == other.runtimeType &&
           typeId == other.typeId;
 }
+
+// **************************************************************************
+// JsonSerializableGenerator
+// **************************************************************************
+
+LiveChannel _$LiveChannelFromJson(Map<String, dynamic> json) => LiveChannel(
+      id: LiveChannel._idFromJson(json['stream_id']),
+      name: json['name'] as String,
+      categoryId: LiveChannel._idFromJson(json['category_id']),
+      logoUrl: json['stream_icon'] as String?,
+      streamUrl: json['direct_source'] as String?,
+      num: JsonHelpers.asNullableInt(json['num']),
+    );
+
+Map<String, dynamic> _$LiveChannelToJson(LiveChannel instance) =>
+    <String, dynamic>{
+      'stream_id': instance.id,
+      'name': instance.name,
+      'category_id': instance.categoryId,
+      'stream_icon': instance.logoUrl,
+      'direct_source': instance.streamUrl,
+      'num': instance.num,
+    };

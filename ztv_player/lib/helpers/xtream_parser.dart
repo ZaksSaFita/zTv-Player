@@ -1,14 +1,6 @@
-// lib/helpers/xtream_parser.dart
-
 import 'package:dio/dio.dart';
-import '../models/live_category.dart';
-import '../models/live_channel.dart';
-// import '../models/vod_category.dart';
-// import '../models/vod_movie.dart';
-// import '../models/series_category.dart';
-// import '../models/series.dart';
-// import '../models/season.dart';
-// import '../models/episode.dart';
+import 'package:ztv_player/models/live_category.dart';
+import 'package:ztv_player/models/live_channel.dart';
 
 class XtreamParser {
   final String server;
@@ -32,20 +24,10 @@ class XtreamParser {
       final List<dynamic> data = response.data;
 
       return data
-          .map(
-            (json) => LiveChannel(
-              id: json['stream_id'].toString(),
-              name: json['name'],
-              categoryId: json['category_id'].toString(),
-              logoUrl: json['stream_icon'],
-              num: json['num'] != null
-                  ? int.tryParse(json['num'].toString())
-                  : null,
-            ),
-          )
+          .map((json) => LiveChannel.fromJson(Map<String, dynamic>.from(json)))
           .toList();
     } on Exception catch (e) {
-      throw Exception('Greška pri učitavanju LiveChannel: $e');
+      throw Exception('Greska pri ucitavanju LiveChannel: $e');
     }
   }
 
@@ -57,15 +39,10 @@ class XtreamParser {
       final List<dynamic> data = response.data;
 
       return data
-          .map(
-            (json) => LiveCategory(
-              id: json['category_id'].toString(),
-              name: json['category_name'],
-            ),
-          )
+          .map((json) => LiveCategory.fromJson(Map<String, dynamic>.from(json)))
           .toList();
     } on Exception catch (e) {
-      throw Exception('Greška pri učitavanju LiveCategory: $e');
+      throw Exception('Greska pri ucitavanju LiveCategory: $e');
     }
   }
 }

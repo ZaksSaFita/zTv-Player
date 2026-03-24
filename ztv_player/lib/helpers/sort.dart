@@ -4,15 +4,29 @@ enum SortType { defaultSort, asc, desc, custome }
 
 enum ScreenSection { live, movies, series }
 
+class SearchController {
+  final ValueNotifier<String> notifier;
+
+  SearchController({String initialValue = ''})
+    : notifier = ValueNotifier(initialValue);
+
+  void update(String query) {
+    notifier.value = query;
+  }
+}
+
 class ScreenUiController {
   final ValueNotifier<SortType> sortNotifier;
   final ValueNotifier<bool> isGridNotifier;
+  final SearchController searchController;
 
   ScreenUiController({
     SortType initialSort = SortType.defaultSort,
     bool initialIsGrid = true,
+    String initialSearch = '',
   }) : sortNotifier = ValueNotifier(initialSort),
-       isGridNotifier = ValueNotifier(initialIsGrid);
+       isGridNotifier = ValueNotifier(initialIsGrid),
+       searchController = SearchController(initialValue: initialSearch);
 
   void changeSort() {
     sortNotifier.value = AppSort.nextSort(sortNotifier.value);
@@ -20,6 +34,10 @@ class ScreenUiController {
 
   void toggleView() {
     isGridNotifier.value = !isGridNotifier.value;
+  }
+
+  void updateSearch(String query) {
+    searchController.update(query);
   }
 
   IconData sortIcon() {
@@ -37,6 +55,8 @@ class AppSort {
     ScreenSection.movies: ScreenUiController(),
     ScreenSection.series: ScreenUiController(),
   };
+
+  static final SearchController liveCategorySearch = SearchController();
 
   static ScreenUiController controller(ScreenSection section) {
     return _controllers[section]!;
@@ -106,10 +126,24 @@ class AppSort {
         }
         break;
       case SortType.defaultSort:
-      default:
         items.sort((a, b) => compareIds(idOf(a), idOf(b)));
         break;
     }
+  }
+
+  static List<T> applySearchFilter<T>({
+    required List<T> items,
+    required String query,
+    required String Function(T item) nameOf,
+  }) {
+    final normalizedQuery = query.trim().toLowerCase();
+    if (normalizedQuery.isEmpty) {
+      return items;
+    }
+
+    return items
+        .where((item) => nameOf(item).toLowerCase().contains(normalizedQuery))
+        .toList();
   }
 }
 

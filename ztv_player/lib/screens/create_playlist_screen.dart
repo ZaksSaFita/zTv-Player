@@ -1,11 +1,6 @@
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:hive_flutter/hive_flutter.dart';
-import 'package:ztv_player/models/playlist.dart';
-import 'package:ztv_player/models/live_category.dart'; // ← dodaj ovo
-import 'package:ztv_player/models/live_channel.dart'; // ← dodaj ovo
-import 'package:ztv_player/helpers/xtream_parser.dart';
 import 'package:ztv_player/screens/layout_screen/main_screen.dart';
+import 'package:ztv_player/services/playlist_service.dart';
 
 class CreatePlaylistScreen extends StatefulWidget {
   const CreatePlaylistScreen({super.key});
@@ -15,6 +10,7 @@ class CreatePlaylistScreen extends StatefulWidget {
 }
 
 class _CreatePlaylistScreenState extends State<CreatePlaylistScreen> {
+  final _playlistService = const PlaylistService();
   final _nameController = TextEditingController();
   final _serverController = TextEditingController();
   final _usernameController = TextEditingController();
@@ -44,77 +40,26 @@ class _CreatePlaylistScreenState extends State<CreatePlaylistScreen> {
     });
 
     try {
-      final parser = XtreamParser(
-        server: server,
-        username: username,
-        password: password,
+      final result = await _playlistService.createAndSavePlaylist(
+        PlaylistLoadRequest(
+          name: name,
+          server: server,
+          username: username,
+          password: password,
+        ),
+        onStatusChanged: (status) {
+          if (!mounted) {
+            return;
+          }
+          setState(() => _status = status);
+        },
       );
-
-      // 1. Test konekcije
-      final m3uUrl =
-          '$server/get.php?username=$username&password=$password&type=m3u_plus';
-      final response = await Dio().get(m3uUrl);
-
-      if (response.statusCode != 200 || response.data.toString().length < 500) {
-        throw Exception('Invalid playlist from server');
-      }
-
-      setState(() => _status = 'Connection OK. Saving playlist...');
-
-      // 2. Kreiraj i spremi Playlist
-      final playlist = Playlist(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        name: name.isNotEmpty ? name : 'My Playlist',
-        server: server,
-        username: username,
-        password: password,
-      );
-
-      final playlistBox = Hive.box<Playlist>('playlists');
-      await playlistBox.put(playlist.id, playlist);
-
-      setState(() => _status = 'Loading Live TV categories...');
-
-      // 3. Učitaj i spremi Live Categories
-      final liveCategories = await parser.getLiveCategories();
-      final liveCatBox = Hive.box<LiveCategory>('live_categories');
-      await liveCatBox.clear(); // brišemo stare podatke
-      for (var cat in liveCategories) {
-        await liveCatBox.put(cat.id, cat);
-      }
-
-      setState(() => _status = 'Loading Live TV channels...');
-
-      // 4. Učitaj i spremi Live Channels
-      final liveChannels = await parser.getLiveChannels();
-      final liveChanBox = Hive.box<LiveChannel>('live_channels');
-      await liveChanBox.clear();
-      for (var channel in liveChannels) {
-        await liveChanBox.put(channel.id, channel);
-      }
-
-      // 5. Izračunaj i ažuriraj channelCount za svaku kategoriju
-      setState(() => _status = 'Calculating channel counts...');
-
-      final Map<String, int> countMap = {};
-      for (var channel in liveChannels) {
-        countMap[channel.categoryId] = (countMap[channel.categoryId] ?? 0) + 1;
-      }
-
-      // Ažuriraj svaku kategoriju sa pravim brojem
-      for (var cat in liveCategories) {
-        final count = countMap[cat.id] ?? 0;
-        cat.channelCount = count;
-        await cat.save(); // važno! jer je HiveObject
-      }
-
-      setState(() => _status = 'Playlist successfully loaded!');
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Playlist "${playlist.name}" loaded with ${liveChannels.length} channels!',
+              'Playlist "${result.playlist.name}" loaded with ${result.liveChannelCount} channels!',
             ),
             backgroundColor: Colors.green,
           ),
@@ -209,19 +154,23 @@ class _CreatePlaylistScreenState extends State<CreatePlaylistScreen> {
                     vertical: 16,
                   ),
                   textStyle: const TextStyle(fontSize: 18),
+                  backgroundColor: Colors.white,
                 ),
                 child: _isLoading
                     ? const SizedBox(
                         height: 24,
                         width: 24,
                         child: CircularProgressIndicator(
-                          color: Colors.white,
+                          color: Colors.black,
                           strokeWidth: 3,
                         ),
                       )
                     : const Text(
                         "Let's Go",
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black,
+                        ),
                       ),
               ),
             ],
