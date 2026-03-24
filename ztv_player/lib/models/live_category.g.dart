@@ -19,7 +19,7 @@ class LiveCategoryAdapter extends TypeAdapter<LiveCategory> {
     return LiveCategory(
       id: fields[0] as String,
       name: fields[1] as String,
-      channelCount: fields[2] as int?,
+      channelCount: fields[2] as int,
     );
   }
 

@@ -1,9 +1,9 @@
-import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:ztv_player/models/playlist.dart';
+import 'package:ztv_player/models/live_category.dart'; // ← dodaj ovo
+import 'package:ztv_player/models/live_channel.dart'; // ← dodaj ovo
 import 'package:ztv_player/helpers/xtream_parser.dart';
 import 'package:ztv_player/screens/layout_screen/main_screen.dart';
 
@@ -50,7 +50,7 @@ class _CreatePlaylistScreenState extends State<CreatePlaylistScreen> {
         password: password,
       );
 
-      // 1. Test konekcije i skidanje playliste
+      // 1. Test konekcije
       final m3uUrl =
           '$server/get.php?username=$username&password=$password&type=m3u_plus';
       final response = await Dio().get(m3uUrl);
@@ -61,7 +61,7 @@ class _CreatePlaylistScreenState extends State<CreatePlaylistScreen> {
 
       setState(() => _status = 'Connection OK. Saving playlist...');
 
-      // 2. Kreiraj i spremi Playlist u Hive
+      // 2. Kreiraj i spremi Playlist
       final playlist = Playlist(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         name: name.isNotEmpty ? name : 'My Playlist',
@@ -73,19 +73,54 @@ class _CreatePlaylistScreenState extends State<CreatePlaylistScreen> {
       final playlistBox = Hive.box<Playlist>('playlists');
       await playlistBox.put(playlist.id, playlist);
 
-      setState(() => _status = 'Loading Live TV categories and channels...');
+      setState(() => _status = 'Loading Live TV categories...');
 
-      // TODO: Ovdje ćemo kasnije dodati parsiranje i spremanje Live, VOD i Series podataka
+      // 3. Učitaj i spremi Live Categories
+      final liveCategories = await parser.getLiveCategories();
+      final liveCatBox = Hive.box<LiveCategory>('live_categories');
+      await liveCatBox.clear(); // brišemo stare podatke
+      for (var cat in liveCategories) {
+        await liveCatBox.put(cat.id, cat);
+      }
+
+      setState(() => _status = 'Loading Live TV channels...');
+
+      // 4. Učitaj i spremi Live Channels
+      final liveChannels = await parser.getLiveChannels();
+      final liveChanBox = Hive.box<LiveChannel>('live_channels');
+      await liveChanBox.clear();
+      for (var channel in liveChannels) {
+        await liveChanBox.put(channel.id, channel);
+      }
+
+      // 5. Izračunaj i ažuriraj channelCount za svaku kategoriju
+      setState(() => _status = 'Calculating channel counts...');
+
+      final Map<String, int> countMap = {};
+      for (var channel in liveChannels) {
+        countMap[channel.categoryId] = (countMap[channel.categoryId] ?? 0) + 1;
+      }
+
+      // Ažuriraj svaku kategoriju sa pravim brojem
+      for (var cat in liveCategories) {
+        final count = countMap[cat.id] ?? 0;
+        cat.channelCount = count;
+        await cat.save(); // važno! jer je HiveObject
+      }
+
+      setState(() => _status = 'Playlist successfully loaded!');
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Playlist "${playlist.name}" added successfully!'),
+            content: Text(
+              'Playlist "${playlist.name}" loaded with ${liveChannels.length} channels!',
+            ),
             backgroundColor: Colors.green,
           ),
         );
 
-        // Idemo direktno na MainScreen (Live TV)
+        // Idemo direktno na MainScreen
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => const MainScreen()),
           (route) => false,

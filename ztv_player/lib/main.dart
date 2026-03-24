@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:ztv_player/helpers/theme.dart';
 import 'package:ztv_player/models/episode.dart';
 import 'package:ztv_player/models/live_category.dart';
 import 'package:ztv_player/models/live_channel.dart';
@@ -10,6 +11,7 @@ import 'package:ztv_player/models/series_category.dart';
 import 'package:ztv_player/models/vod_category.dart';
 import 'package:ztv_player/models/vod_movie.dart';
 import 'package:ztv_player/screens/playlist_screen/create_playlist_screen.dart';
+import 'package:ztv_player/screens/layout_screen/main_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -40,19 +42,31 @@ void main() async {
   await Hive.openBox<Season>('seasons');
   await Hive.openBox<Episode>('episodes');
 
+  // === theme settings box ===
+  await Hive.openBox('settings');
+  final settings = Hive.box('settings');
+  final savedThemeIndex =
+      settings.get('theme', defaultValue: AppThemeType.dark.index) as int;
+  AppTheme.notifier.value = AppThemeType.values[savedThemeIndex];
+
   runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'zTv - Player',
-      theme: ThemeData(),
-      home: const MyHomePage(),
+    return ValueListenableBuilder<AppThemeType>(
+      valueListenable: AppTheme.notifier,
+      builder: (context, theme, _) {
+        return MaterialApp(
+          title: 'zTv - Player',
+          theme: AppTheme.getTheme(theme),
+          home: const MyHomePage(),
+          routes: {'/main': (context) => const MainScreen()},
+        );
+      },
     );
   }
 }
@@ -65,6 +79,25 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  @override
+  void initState() {
+    super.initState();
+    _checkPlaylistAndNavigate();
+  }
+
+  Future<void> _checkPlaylistAndNavigate() async {
+    // Čekaj malo da se sve inicijalizuje
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    // Provjeri da li postoji playlist u Hive bazi
+    final playlistBox = Hive.box<Playlist>('playlists');
+
+    if (playlistBox.isNotEmpty && mounted) {
+      // Ako postoji playlist, idi direktno na MainScreen
+      Navigator.of(context).pushReplacementNamed('/main');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
