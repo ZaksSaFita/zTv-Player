@@ -213,6 +213,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final serverController = TextEditingController(text: playlist.server);
     final usernameController = TextEditingController(text: playlist.username);
     final passwordController = TextEditingController(text: playlist.password);
+    final canSaveNotifier = ValueNotifier(false);
+
+    void refreshCanSave() {
+      canSaveNotifier.value = _hasPlaylistChanges(
+        playlist: playlist,
+        name: nameController.text,
+        server: serverController.text,
+        username: usernameController.text,
+        password: passwordController.text,
+      );
+    }
+
+    nameController.addListener(refreshCanSave);
+    serverController.addListener(refreshCanSave);
+    usernameController.addListener(refreshCanSave);
+    passwordController.addListener(refreshCanSave);
+    refreshCanSave();
 
     final result = await showDialog<PlaylistLoadRequest>(
       context: context,
@@ -247,29 +264,50 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onPressed: () => Navigator.of(ctx).pop(),
               child: const Text('Cancel'),
             ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(ctx).pop(
-                  PlaylistLoadRequest(
-                    name: nameController.text.trim(),
-                    server: serverController.text.trim(),
-                    username: usernameController.text.trim(),
-                    password: passwordController.text.trim(),
-                  ),
+            ValueListenableBuilder<bool>(
+              valueListenable: canSaveNotifier,
+              builder: (context, canSave, _) {
+                return TextButton(
+                  onPressed: !canSave
+                      ? null
+                      : () {
+                          Navigator.of(ctx).pop(
+                            PlaylistLoadRequest(
+                              name: nameController.text.trim(),
+                              server: serverController.text.trim(),
+                              username: usernameController.text.trim(),
+                              password: passwordController.text.trim(),
+                            ),
+                          );
+                        },
+                  child: const Text('Save'),
                 );
               },
-              child: const Text('Save'),
             ),
           ],
         );
       },
     );
 
+    canSaveNotifier.dispose();
     nameController.dispose();
     serverController.dispose();
     usernameController.dispose();
     passwordController.dispose();
     return result;
+  }
+
+  bool _hasPlaylistChanges({
+    required Playlist playlist,
+    required String name,
+    required String server,
+    required String username,
+    required String password,
+  }) {
+    return name.trim() != playlist.name.trim() ||
+        server.trim() != playlist.server.trim() ||
+        username.trim() != playlist.username.trim() ||
+        password.trim() != playlist.password.trim();
   }
 
   @override
