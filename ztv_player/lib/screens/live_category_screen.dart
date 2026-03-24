@@ -4,7 +4,7 @@ import 'package:ztv_player/helpers/sort.dart';
 import 'package:ztv_player/models/live_tv_channel.dart';
 import 'package:ztv_player/models/live_tv_category.dart';
 import 'package:ztv_player/screens/live_channel_player_screen.dart';
-import 'package:ztv_player/services/live_channel_service.dart';
+import 'package:ztv_player/services/live_tv_service.dart';
 import 'package:ztv_player/widgets/app_search_field.dart';
 import 'package:ztv_player/widgets/content_cards.dart';
 import 'package:ztv_player/widgets/empty_state.dart';
@@ -24,7 +24,7 @@ class _LiveCategoryScreenState extends State<LiveCategoryScreen> {
   @override
   Widget build(BuildContext context) {
     final controller = AppSort.liveCategoryController;
-    const channelService = LiveChannelService();
+    const channelService = LiveTvService();
 
     return PopScope(
       onPopInvokedWithResult: (_, _) {
