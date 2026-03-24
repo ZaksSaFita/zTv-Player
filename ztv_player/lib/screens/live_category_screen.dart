@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:ztv_player/helpers/sort.dart';
+import 'package:ztv_player/helpers/theme.dart';
 import 'package:ztv_player/models/live_tv_channel.dart';
 import 'package:ztv_player/models/live_tv_category.dart';
 import 'package:ztv_player/screens/live_channel_player_screen.dart';
@@ -55,33 +56,54 @@ class _LiveCategoryScreenState extends State<LiveCategoryScreen> {
               Navigator.pop(context);
             },
             icon: const Icon(Icons.arrow_back_ios_rounded),
+            color: AppTheme.colorsNotifier.value.bottomNavIcon,
           ),
           actions: [
-            IconButton(
-              onPressed: () {
-                final shouldOpen = !_isSearchOpen;
-                setState(() => _isSearchOpen = shouldOpen);
-                if (!shouldOpen) {
-                  controller.updateSearch('');
-                }
-              },
-              icon: Icon(_isSearchOpen ? Icons.close : Icons.search),
-            ),
-            ValueListenableBuilder<bool>(
-              valueListenable: controller.isGridNotifier,
-              builder: (context, isGrid, _) {
+            ValueListenableBuilder(
+              valueListenable: AppTheme.colorsNotifier,
+              builder: (context, colors, _) {
                 return IconButton(
-                  onPressed: controller.toggleView,
-                  icon: Icon(controller.viewIcon()),
+                  onPressed: () {
+                    final shouldOpen = !_isSearchOpen;
+                    setState(() => _isSearchOpen = shouldOpen);
+                    if (!shouldOpen) {
+                      controller.updateSearch('');
+                    }
+                  },
+                  icon: Icon(_isSearchOpen ? Icons.close : Icons.search),
+                  color: _isSearchOpen
+                      ? colors.bottomNavSelectedIcon
+                      : colors.bottomNavIcon,
                 );
               },
             ),
-            ValueListenableBuilder<SortType>(
-              valueListenable: controller.sortNotifier,
-              builder: (context, sortType, _) {
-                return IconButton(
-                  onPressed: controller.changeSort,
-                  icon: Icon(controller.sortIcon()),
+            ValueListenableBuilder(
+              valueListenable: AppTheme.colorsNotifier,
+              builder: (context, colors, _) {
+                return ValueListenableBuilder<bool>(
+                  valueListenable: controller.isGridNotifier,
+                  builder: (context, isGrid, _) {
+                    return IconButton(
+                      onPressed: controller.toggleView,
+                      icon: Icon(controller.viewIcon()),
+                      color: colors.bottomNavIcon,
+                    );
+                  },
+                );
+              },
+            ),
+            ValueListenableBuilder(
+              valueListenable: AppTheme.colorsNotifier,
+              builder: (context, colors, _) {
+                return ValueListenableBuilder<SortType>(
+                  valueListenable: controller.sortNotifier,
+                  builder: (context, sortType, _) {
+                    return IconButton(
+                      onPressed: controller.changeSort,
+                      icon: Icon(controller.sortIcon()),
+                      color: colors.bottomNavIcon,
+                    );
+                  },
                 );
               },
             ),

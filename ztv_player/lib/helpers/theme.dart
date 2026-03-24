@@ -65,8 +65,8 @@ class AppTheme {
         return ThemeColors(
           appBarBackground: const Color(0xFFF8FAFC),
           appBarText: Color(0xFF1976D2),
-          appBarIcon: Colors.white,
-          appBarSelectedIcon: Colors.white,
+          appBarIcon: const Color(0xFF6B7280),
+          appBarSelectedIcon: const Color(0xFF1976D2),
           bottomNavBackground: const Color(0xFFF8FAFC),
           bottomNavIcon: const Color(0xFF6B7280),
           bottomNavSelectedIcon: const Color(0xFF1976D2),
@@ -77,7 +77,7 @@ class AppTheme {
         return ThemeColors(
           appBarBackground: const Color(0xFF000000),
           appBarText: const Color(0xFFE50914),
-          appBarIcon: Colors.white,
+          appBarIcon: const Color(0xFF808080),
           appBarSelectedIcon: const Color(0xFFE50914),
           bottomNavBackground: const Color(0xFF0F0F0F),
           bottomNavIcon: const Color(0xFF808080),
@@ -89,7 +89,7 @@ class AppTheme {
         return ThemeColors(
           appBarBackground: const Color(0xFF2C2F33),
           appBarText: Colors.white,
-          appBarIcon: Colors.white,
+          appBarIcon: const Color(0xFF72767D),
           appBarSelectedIcon: const Color(0xFF7289DA),
           bottomNavBackground: const Color(0xFF23272A),
           bottomNavIcon: const Color(0xFF72767D),
@@ -101,7 +101,7 @@ class AppTheme {
         return ThemeColors(
           appBarBackground: const Color(0xFF191414),
           appBarText: const Color(0xFF1DB954),
-          appBarIcon: Colors.white,
+          appBarIcon: const Color(0xFF6A6A6A),
           appBarSelectedIcon: const Color(0xFF1DB954),
           bottomNavBackground: const Color(0xFF0F0F0F),
           bottomNavIcon: const Color(0xFF6A6A6A),
@@ -113,7 +113,7 @@ class AppTheme {
         return ThemeColors(
           appBarBackground: const Color(0xFF282A36),
           appBarText: const Color(0xFFF8F8F2),
-          appBarIcon: const Color(0xFF50FA7B),
+          appBarIcon: const Color(0xFF6272A4),
           appBarSelectedIcon: const Color(0xFF50FA7B),
           bottomNavBackground: const Color(0xFF21222C),
           bottomNavIcon: const Color(0xFF6272A4),
@@ -125,8 +125,8 @@ class AppTheme {
         return ThemeColors(
           appBarBackground: const Color(0xFF2E3440),
           appBarText: const Color(0xFF88C0D0),
-          appBarIcon: const Color(0xFF88C0D0),
-          appBarSelectedIcon: const Color(0xFF81A1C1),
+          appBarIcon: const Color(0xFF4C566A),
+          appBarSelectedIcon: const Color(0xFF88C0D0),
           bottomNavBackground: const Color(0xFF3B4252),
           bottomNavIcon: const Color(0xFF4C566A),
           bottomNavSelectedIcon: const Color(0xFF88C0D0),
@@ -137,7 +137,7 @@ class AppTheme {
         return ThemeColors(
           appBarBackground: const Color(0xFF141414),
           appBarText: Color(0xFF8590F5),
-          appBarIcon: Colors.white,
+          appBarIcon: const Color(0xFFB3B3B3),
           appBarSelectedIcon: const Color(0xFF8590F5),
           bottomNavBackground: const Color(0xFF141414),
           bottomNavIcon: const Color(0xFFB3B3B3),
@@ -162,7 +162,7 @@ class AppTheme {
       appBarTheme: AppBarTheme(
         backgroundColor: colors.appBarBackground,
         elevation: 0,
-        iconTheme: IconThemeData(color: colors.appBarIcon),
+        iconTheme: IconThemeData(color: colors.bottomNavIcon),
         titleTextStyle: TextStyle(
           color: colors.appBarText,
           fontSize: 20,

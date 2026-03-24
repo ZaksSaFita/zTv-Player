@@ -98,7 +98,9 @@ class _MainScreenState extends State<MainScreen> {
                     }
                   },
                   icon: Icon(_isSearchOpen ? Icons.close : Icons.search),
-                  color: colors.appBarIcon,
+                  color: _isSearchOpen
+                      ? colors.bottomNavSelectedIcon
+                      : colors.bottomNavIcon,
                 );
               },
             ),
@@ -116,8 +118,8 @@ class _MainScreenState extends State<MainScreen> {
                       },
                       icon: Icon(controller.viewIcon()),
                       color: _selectedActionIcon == 0
-                          ? colors.appBarSelectedIcon
-                          : colors.appBarIcon,
+                          ? colors.bottomNavSelectedIcon
+                          : colors.bottomNavIcon,
                     );
                   },
                 );
@@ -137,8 +139,8 @@ class _MainScreenState extends State<MainScreen> {
                       },
                       icon: Icon(controller.sortIcon()),
                       color: _selectedActionIcon == 1
-                          ? colors.appBarSelectedIcon
-                          : colors.appBarIcon,
+                          ? colors.bottomNavSelectedIcon
+                          : colors.bottomNavIcon,
                     );
                   },
                 );
@@ -152,8 +154,8 @@ class _MainScreenState extends State<MainScreen> {
                   onPressed: () => setState(() => _selectedActionIcon = 2),
                   icon: const Icon(Icons.settings),
                   color: _selectedActionIcon == 2
-                      ? colors.appBarSelectedIcon
-                      : colors.appBarIcon,
+                      ? colors.bottomNavSelectedIcon
+                      : colors.bottomNavIcon,
                 );
               },
             ),
