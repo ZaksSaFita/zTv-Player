@@ -56,7 +56,9 @@ class AppSort {
     ScreenSection.series: ScreenUiController(),
   };
 
-  static final SearchController liveCategorySearch = SearchController();
+  static final ScreenUiController liveCategoryController = ScreenUiController(
+    initialIsGrid: false,
+  );
 
   static ScreenUiController controller(ScreenSection section) {
     return _controllers[section]!;

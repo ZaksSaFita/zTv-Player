@@ -17,6 +17,7 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
   int? _selectedActionIcon;
+  bool _isSearchOpen = false;
 
   final List<Widget> _pages = const [
     LiveTvScreen(),
@@ -54,6 +55,7 @@ class _MainScreenState extends State<MainScreen> {
     setState(() {
       _selectedIndex = index;
       _selectedActionIcon = null;
+      _isSearchOpen = false;
     });
   }
 
@@ -64,19 +66,42 @@ class _MainScreenState extends State<MainScreen> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: _showContentActions
-            ? ValueListenableBuilder<String>(
-                valueListenable: controller.searchController.notifier,
-                builder: (context, query, _) {
-                  return AppSearchField(
-                    value: query,
-                    hintText: 'Search ${_titles[_selectedIndex]}',
-                    onChanged: controller.updateSearch,
-                  );
-                },
+        title: !_showContentActions
+            ? Text(_titles[_selectedIndex])
+            : null,
+        bottom: _showContentActions && _isSearchOpen
+            ? PreferredSize(
+                preferredSize: const Size.fromHeight(64),
+                child: ValueListenableBuilder<String>(
+                  valueListenable: controller.searchController.notifier,
+                  builder: (context, query, _) {
+                    return AppSearchField(
+                      value: query,
+                      hintText: 'Search ${_titles[_selectedIndex]}',
+                      onChanged: controller.updateSearch,
+                    );
+                  },
+                ),
               )
-            : Text(_titles[_selectedIndex]),
+            : null,
         actions: [
+          if (_showContentActions)
+            ValueListenableBuilder(
+              valueListenable: AppTheme.colorsNotifier,
+              builder: (context, colors, _) {
+                return IconButton(
+                  onPressed: () {
+                    final shouldOpen = !_isSearchOpen;
+                    setState(() => _isSearchOpen = shouldOpen);
+                    if (!shouldOpen) {
+                      controller.updateSearch('');
+                    }
+                  },
+                  icon: Icon(_isSearchOpen ? Icons.close : Icons.search),
+                  color: colors.appBarIcon,
+                );
+              },
+            ),
           if (_showContentActions)
             ValueListenableBuilder<bool>(
               valueListenable: controller.isGridNotifier,
