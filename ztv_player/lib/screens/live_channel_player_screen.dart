@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:ztv_player/models/live_tv_channel.dart';
 import 'package:ztv_player/models/epg_listing.dart';
-import 'package:ztv_player/models/live_channel.dart';
 import 'package:ztv_player/services/epg_service.dart';
 import 'package:ztv_player/services/playback_service.dart';
 import 'package:ztv_player/widgets/app_video_player.dart';
@@ -14,7 +14,7 @@ class LiveChannelPlayerScreen extends StatefulWidget {
     EpgService? epgService,
   }) : epgService = epgService ?? EpgService();
 
-  final LiveChannel channel;
+  final LiveTvChannel channel;
   final PlaybackService playbackService;
   final EpgService epgService;
 
@@ -72,7 +72,7 @@ class _LiveChannelDetailContent extends StatelessWidget {
     required this.onLiveSelected,
   });
 
-  final LiveChannel channel;
+  final LiveTvChannel channel;
   final bool streamAvailable;
   final EpgService epgService;
   final EpgListing? selectedArchiveListing;
@@ -330,103 +330,5 @@ class _ArchiveTile extends StatelessWidget {
     final hour = value.hour.toString().padLeft(2, '0');
     final minute = value.minute.toString().padLeft(2, '0');
     return '$hour:$minute';
-  }
-}
-
-class _NowPlayingTile extends StatelessWidget {
-  const _NowPlayingTile({
-    required this.channel,
-    required this.streamAvailable,
-    required this.selectedArchiveListing,
-    required this.onPlayLive,
-  });
-
-  final LiveChannel channel;
-  final bool streamAvailable;
-  final EpgListing? selectedArchiveListing;
-  final VoidCallback onPlayLive;
-
-  @override
-  Widget build(BuildContext context) {
-    final isArchiveMode = selectedArchiveListing != null;
-
-    // Ovdje podesis gornju info karticu ispod playera.
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF2B2B35),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            isArchiveMode && selectedArchiveListing!.title.isNotEmpty
-                ? selectedArchiveListing!.title
-                : channel.name,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            !streamAvailable
-                ? 'Playable source is missing for this channel.'
-                : isArchiveMode
-                ? '${_formatTime(selectedArchiveListing!.start)} - ${_formatTime(selectedArchiveListing!.end)}'
-                : 'Playback is available. Use player controls for play and fullscreen.',
-            style: const TextStyle(color: Colors.white70),
-          ),
-          if (isArchiveMode) ...[
-            const SizedBox(height: 12),
-            TextButton.icon(
-              onPressed: onPlayLive,
-              icon: const Icon(Icons.live_tv_rounded),
-              label: const Text('Back to live'),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  String _formatTime(DateTime value) {
-    final hour = value.hour.toString().padLeft(2, '0');
-    final minute = value.minute.toString().padLeft(2, '0');
-    return '$hour:$minute';
-  }
-}
-
-class _InfoRow extends StatelessWidget {
-  const _InfoRow({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    // Ovdje podesis jedan red pomocnih informacija: label lijevo, value desno.
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 92,
-            child: Text(
-              label,
-              style: const TextStyle(
-                color: Colors.white54,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(value, style: const TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
   }
 }

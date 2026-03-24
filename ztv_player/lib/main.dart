@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:media_kit/media_kit.dart' hide Playlist;
 import 'package:ztv_player/helpers/theme.dart';
+import 'package:ztv_player/models/live_tv_channel.dart';
 import 'package:ztv_player/models/episode.dart';
 import 'package:ztv_player/models/epg_listing.dart';
-import 'package:ztv_player/models/live_category.dart';
-import 'package:ztv_player/models/live_channel.dart';
+import 'package:ztv_player/models/live_tv_category.dart';
 import 'package:ztv_player/models/playlist.dart';
 import 'package:ztv_player/models/season.dart';
 import 'package:ztv_player/models/series.dart';
@@ -19,15 +19,12 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   MediaKit.ensureInitialized();
 
-  // === HIVE INIT ===
-  await Hive.initFlutter(); // ovo je najvažnije
-  // kasnije ćemo ovdje registrovati adaptere za modele
+  await Hive.initFlutter();
 
-  // === REGISTRACIJA SVIH ADAPTERA ===
   Hive.registerAdapter(PlaylistAdapter());
   Hive.registerAdapter(EpgListingAdapter());
-  Hive.registerAdapter(LiveCategoryAdapter());
-  Hive.registerAdapter(LiveChannelAdapter());
+  Hive.registerAdapter(LiveTvCategoryAdapter());
+  Hive.registerAdapter(LiveTvChannelAdapter());
   Hive.registerAdapter(VodCategoryAdapter());
   Hive.registerAdapter(VodMovieAdapter());
   Hive.registerAdapter(SeriesCategoryAdapter());
@@ -35,10 +32,9 @@ void main() async {
   Hive.registerAdapter(SeasonAdapter());
   Hive.registerAdapter(EpisodeAdapter());
 
-  // === OTVARANJE BOXOVA (baza podataka) ===
   await Hive.openBox<Playlist>('playlists');
-  await Hive.openBox<LiveCategory>('live_categories');
-  await Hive.openBox<LiveChannel>('live_channels');
+  await Hive.openBox<LiveTvCategory>('live_categories');
+  await Hive.openBox<LiveTvChannel>('live_channels');
   await Hive.openBox<VodCategory>('vod_categories');
   await Hive.openBox<VodMovie>('vod_movies');
   await Hive.openBox<SeriesCategory>('series_categories');
@@ -46,7 +42,6 @@ void main() async {
   await Hive.openBox<Season>('seasons');
   await Hive.openBox<Episode>('episodes');
 
-  // === theme settings box ===
   await Hive.openBox('settings');
   final settings = Hive.box('settings');
   final savedThemeIndex =
@@ -90,14 +85,11 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<void> _checkPlaylistAndNavigate() async {
-    // Čekaj malo da se sve inicijalizuje
     await Future.delayed(const Duration(milliseconds: 500));
 
-    // Provjeri da li postoji playlist u Hive bazi
     final playlistBox = Hive.box<Playlist>('playlists');
 
     if (playlistBox.isNotEmpty && mounted) {
-      // Ako postoji playlist, idi direktno na MainScreen
       Navigator.of(context).pushReplacementNamed('/main');
     }
   }
@@ -106,19 +98,17 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-
             children: [
-              Image.asset("assets/images/zTv_logo.png", fit: BoxFit.contain),
+              Image.asset('assets/images/zTv_logo.png', fit: BoxFit.contain),
               Column(
-                children: [
+                children: const [
                   Text(
-                    "Ready for the big screen",
+                    'Ready for the big screen',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Colors.white,
@@ -126,9 +116,9 @@ class _MyHomePageState extends State<MyHomePage> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
                   Text(
-                    "Create a playlist, keep it saved, and browse Live TV, Movies, and Series by category.",
+                    'Create a playlist, keep it saved, and browse Live TV, Movies, and Series by category.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Colors.white,
@@ -142,26 +132,20 @@ class _MyHomePageState extends State<MyHomePage> {
                 onPressed: () {
                   Navigator.of(context).push(
                     PageRouteBuilder(
-                      transitionDuration: const Duration(
-                        milliseconds: 600,
-                      ), // brzina animacije
+                      transitionDuration: const Duration(milliseconds: 600),
                       pageBuilder: (context, animation, secondaryAnimation) =>
                           const CreatePlaylistScreen(),
                       transitionsBuilder:
                           (context, animation, secondaryAnimation, child) {
-                            // Slide iz desna + Fade
-                            const begin = Offset(
-                              1.0,
-                              0.0,
-                            ); // počinje sa desne strane
+                            const begin = Offset(1.0, 0.0);
                             const end = Offset.zero;
                             const curve = Curves.easeInOut;
 
-                            var tween = Tween(
+                            final tween = Tween(
                               begin: begin,
                               end: end,
                             ).chain(CurveTween(curve: curve));
-                            var offsetAnimation = animation.drive(tween);
+                            final offsetAnimation = animation.drive(tween);
 
                             return SlideTransition(
                               position: offsetAnimation,
@@ -178,8 +162,8 @@ class _MyHomePageState extends State<MyHomePage> {
                   textStyle: const TextStyle(fontSize: 18),
                   backgroundColor: Colors.white,
                 ),
-                child: Text(
-                  "Create your playlist",
+                child: const Text(
+                  'Create your playlist',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: Colors.black,

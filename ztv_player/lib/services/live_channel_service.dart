@@ -1,21 +1,21 @@
 import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:ztv_player/helpers/sort.dart';
-import 'package:ztv_player/models/live_channel.dart';
+import 'package:ztv_player/models/live_tv_channel.dart';
 
 class LiveChannelService {
   const LiveChannelService();
 
-  ValueListenable<Box<LiveChannel>> listenable() {
-    return Hive.box<LiveChannel>('live_channels').listenable();
+  ValueListenable<Box<LiveTvChannel>> listenable() {
+    return Hive.box<LiveTvChannel>('live_channels').listenable();
   }
 
-  List<LiveChannel> getChannelsByCategory(String categoryId) {
-    final channels = Hive.box<LiveChannel>('live_channels').values
+  List<LiveTvChannel> getChannelsByCategory(String categoryId) {
+    final channels = Hive.box<LiveTvChannel>('live_channels').values
         .where(
           (channel) =>
               channel.categoryId == categoryId &&
-              !channel.name.trimLeft().startsWith('❱》'),
+              !channel.name.trimLeft().startsWith('?�'),
         )
         .toList()
       ..sort((a, b) => (a.num ?? 0).compareTo(b.num ?? 0));
@@ -23,7 +23,7 @@ class LiveChannelService {
     return channels;
   }
 
-  List<LiveChannel> getVisibleChannels({
+  List<LiveTvChannel> getVisibleChannels({
     required String categoryId,
     required SortType sortType,
     required String query,

@@ -1,35 +1,41 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'live_channel.dart';
+part of 'live_tv_channel.dart';
 
 // **************************************************************************
 // TypeAdapterGenerator
 // **************************************************************************
 
-class LiveChannelAdapter extends TypeAdapter<LiveChannel> {
+class LiveTvChannelAdapter extends TypeAdapter<LiveTvChannel> {
   @override
   final int typeId = 2;
 
   @override
-  LiveChannel read(BinaryReader reader) {
+  LiveTvChannel read(BinaryReader reader) {
     final numOfFields = reader.readByte();
     final fields = <int, dynamic>{
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
-    return LiveChannel(
+    return LiveTvChannel(
       id: fields[0] as String,
       name: fields[1] as String,
       categoryId: fields[2] as String,
       logoUrl: fields[3] as String?,
       streamUrl: fields[4] as String?,
       num: fields[5] as int?,
+      streamType: fields[6] as String,
+      epgChannelId: fields[7] as String?,
+      added: fields[8] as String?,
+      customSid: fields[9] as String?,
+      hasArchive: fields[10] as bool,
+      archiveDuration: fields[11] as int?,
     );
   }
 
   @override
-  void write(BinaryWriter writer, LiveChannel obj) {
+  void write(BinaryWriter writer, LiveTvChannel obj) {
     writer
-      ..writeByte(6)
+      ..writeByte(12)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -41,7 +47,19 @@ class LiveChannelAdapter extends TypeAdapter<LiveChannel> {
       ..writeByte(4)
       ..write(obj.streamUrl)
       ..writeByte(5)
-      ..write(obj.num);
+      ..write(obj.num)
+      ..writeByte(6)
+      ..write(obj.streamType)
+      ..writeByte(7)
+      ..write(obj.epgChannelId)
+      ..writeByte(8)
+      ..write(obj.added)
+      ..writeByte(9)
+      ..write(obj.customSid)
+      ..writeByte(10)
+      ..write(obj.hasArchive)
+      ..writeByte(11)
+      ..write(obj.archiveDuration);
   }
 
   @override
@@ -50,7 +68,7 @@ class LiveChannelAdapter extends TypeAdapter<LiveChannel> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is LiveChannelAdapter &&
+      other is LiveTvChannelAdapter &&
           runtimeType == other.runtimeType &&
           typeId == other.typeId;
 }
@@ -59,16 +77,25 @@ class LiveChannelAdapter extends TypeAdapter<LiveChannel> {
 // JsonSerializableGenerator
 // **************************************************************************
 
-LiveChannel _$LiveChannelFromJson(Map<String, dynamic> json) => LiveChannel(
-      id: LiveChannel._idFromJson(json['stream_id']),
+LiveTvChannel _$LiveTvChannelFromJson(Map<String, dynamic> json) =>
+    LiveTvChannel(
+      id: _channelIdFromJson(json['stream_id']),
       name: json['name'] as String,
-      categoryId: LiveChannel._idFromJson(json['category_id']),
+      categoryId: _channelIdFromJson(json['category_id']),
       logoUrl: json['stream_icon'] as String?,
       streamUrl: json['direct_source'] as String?,
       num: JsonHelpers.asNullableInt(json['num']),
+      streamType: json['stream_type'] as String? ?? 'live',
+      epgChannelId: json['epg_channel_id'] as String?,
+      added: json['added'] as String?,
+      customSid: json['custom_sid'] as String?,
+      hasArchive: json['tv_archive'] == null
+          ? false
+          : _channelBoolFromInt(json['tv_archive']),
+      archiveDuration: JsonHelpers.asNullableInt(json['tv_archive_duration']),
     );
 
-Map<String, dynamic> _$LiveChannelToJson(LiveChannel instance) =>
+Map<String, dynamic> _$LiveTvChannelToJson(LiveTvChannel instance) =>
     <String, dynamic>{
       'stream_id': instance.id,
       'name': instance.name,
@@ -76,4 +103,10 @@ Map<String, dynamic> _$LiveChannelToJson(LiveChannel instance) =>
       'stream_icon': instance.logoUrl,
       'direct_source': instance.streamUrl,
       'num': instance.num,
+      'stream_type': instance.streamType,
+      'epg_channel_id': instance.epgChannelId,
+      'added': instance.added,
+      'custom_sid': instance.customSid,
+      'tv_archive': instance.hasArchive,
+      'tv_archive_duration': instance.archiveDuration,
     };

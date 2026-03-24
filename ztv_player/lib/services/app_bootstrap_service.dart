@@ -1,9 +1,9 @@
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:ztv_player/helpers/theme.dart';
+import 'package:ztv_player/models/live_tv_channel.dart';
 import 'package:ztv_player/models/episode.dart';
 import 'package:ztv_player/models/epg_listing.dart';
-import 'package:ztv_player/models/live_category.dart';
-import 'package:ztv_player/models/live_channel.dart';
+import 'package:ztv_player/models/live_tv_category.dart';
 import 'package:ztv_player/models/playlist.dart';
 import 'package:ztv_player/models/season.dart';
 import 'package:ztv_player/models/series.dart';
@@ -24,8 +24,8 @@ class AppBootstrapService {
   void _registerAdapters() {
     Hive.registerAdapter(PlaylistAdapter());
     Hive.registerAdapter(EpgListingAdapter());
-    Hive.registerAdapter(LiveCategoryAdapter());
-    Hive.registerAdapter(LiveChannelAdapter());
+    Hive.registerAdapter(LiveTvCategoryAdapter());
+    Hive.registerAdapter(LiveTvChannelAdapter());
     Hive.registerAdapter(VodCategoryAdapter());
     Hive.registerAdapter(VodMovieAdapter());
     Hive.registerAdapter(SeriesCategoryAdapter());
@@ -36,8 +36,8 @@ class AppBootstrapService {
 
   Future<void> _openBoxes() async {
     await Hive.openBox<Playlist>('playlists');
-    await Hive.openBox<LiveCategory>('live_categories');
-    await Hive.openBox<LiveChannel>('live_channels');
+    await Hive.openBox<LiveTvCategory>('live_categories');
+    await Hive.openBox<LiveTvChannel>('live_channels');
     await Hive.openBox<VodCategory>('vod_categories');
     await Hive.openBox<VodMovie>('vod_movies');
     await Hive.openBox<SeriesCategory>('series_categories');

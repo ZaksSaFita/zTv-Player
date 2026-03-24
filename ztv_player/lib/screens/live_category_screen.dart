@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:ztv_player/helpers/sort.dart';
-import 'package:ztv_player/models/live_category.dart';
-import 'package:ztv_player/models/live_channel.dart';
+import 'package:ztv_player/models/live_tv_channel.dart';
+import 'package:ztv_player/models/live_tv_category.dart';
 import 'package:ztv_player/screens/live_channel_player_screen.dart';
 import 'package:ztv_player/services/live_channel_service.dart';
 import 'package:ztv_player/widgets/app_search_field.dart';
@@ -10,7 +10,7 @@ import 'package:ztv_player/widgets/content_cards.dart';
 import 'package:ztv_player/widgets/empty_state.dart';
 
 class LiveCategoryScreen extends StatefulWidget {
-  final LiveCategory category;
+  final LiveTvCategory category;
 
   const LiveCategoryScreen({super.key, required this.category});
 
@@ -87,7 +87,7 @@ class _LiveCategoryScreenState extends State<LiveCategoryScreen> {
             ),
           ],
         ),
-        body: ValueListenableBuilder<Box<LiveChannel>>(
+        body: ValueListenableBuilder<Box<LiveTvChannel>>(
           valueListenable: channelService.listenable(),
           builder: (context, box, _) {
             return ValueListenableBuilder<SortType>(

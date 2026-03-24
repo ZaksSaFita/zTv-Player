@@ -1,6 +1,6 @@
 import 'package:ztv_player/models/episode.dart';
 import 'package:ztv_player/models/epg_listing.dart';
-import 'package:ztv_player/models/live_channel.dart';
+import 'package:ztv_player/models/live_tv_channel.dart';
 import 'package:ztv_player/models/vod_movie.dart';
 import 'package:ztv_player/services/settings_service.dart';
 
@@ -9,7 +9,7 @@ class PlaybackService {
 
   final SettingsService settingsService;
 
-  String? resolveLiveStreamUrl(LiveChannel channel) {
+  String? resolveLiveStreamUrl(LiveTvChannel channel) {
     final directSource = _normalizedDirectSource(channel.streamUrl);
     if (directSource != null) {
       return directSource;
@@ -55,7 +55,7 @@ class PlaybackService {
   }
 
   String? resolveArchiveStreamUrl({
-    required LiveChannel channel,
+    required LiveTvChannel channel,
     required EpgListing listing,
   }) {
     if (!listing.hasArchive) {

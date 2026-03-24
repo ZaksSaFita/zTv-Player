@@ -47,6 +47,27 @@ class JsonHelpers {
     return int.tryParse(value.toString());
   }
 
+  static DateTime? unixSecondsToLocalDateTime(dynamic value) {
+    final seconds = asNullableInt(value);
+    if (seconds == null) {
+      return null;
+    }
+
+    return DateTime.fromMillisecondsSinceEpoch(seconds * 1000, isUtc: true)
+        .toLocal();
+  }
+
+  static String? unixSecondsToLocalTime(dynamic value) {
+    final dateTime = unixSecondsToLocalDateTime(value);
+    if (dateTime == null) {
+      return null;
+    }
+
+    final hour = dateTime.hour.toString().padLeft(2, '0');
+    final minute = dateTime.minute.toString().padLeft(2, '0');
+    return '$hour:$minute';
+  }
+
   static String? yearFromDate(dynamic value) {
     final date = asNullableString(value);
     if (date == null || date.length < 4) {

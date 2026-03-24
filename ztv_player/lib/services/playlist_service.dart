@@ -1,8 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:ztv_player/helpers/xtream_parser.dart';
-import 'package:ztv_player/models/live_category.dart';
-import 'package:ztv_player/models/live_channel.dart';
+import 'package:ztv_player/models/live_tv_channel.dart';
+import 'package:ztv_player/models/live_tv_category.dart';
 import 'package:ztv_player/models/playlist.dart';
 import 'package:ztv_player/services/settings_service.dart';
 
@@ -31,9 +31,7 @@ class PlaylistLoadResult {
 }
 
 class PlaylistService {
-  const PlaylistService({
-    this.settingsService = const SettingsService(),
-  });
+  const PlaylistService({this.settingsService = const SettingsService()});
 
   final SettingsService settingsService;
 
@@ -100,16 +98,16 @@ class PlaylistService {
     return playlist;
   }
 
-  Future<void> _saveLiveCategories(List<LiveCategory> categories) async {
-    final liveCatBox = Hive.box<LiveCategory>('live_categories');
+  Future<void> _saveLiveCategories(List<LiveTvCategory> categories) async {
+    final liveCatBox = Hive.box<LiveTvCategory>('live_categories');
     await liveCatBox.clear();
     for (final category in categories) {
       await liveCatBox.put(category.id, category);
     }
   }
 
-  Future<void> _saveLiveChannels(List<LiveChannel> channels) async {
-    final liveChanBox = Hive.box<LiveChannel>('live_channels');
+  Future<void> _saveLiveChannels(List<LiveTvChannel> channels) async {
+    final liveChanBox = Hive.box<LiveTvChannel>('live_channels');
     await liveChanBox.clear();
     for (final channel in channels) {
       await liveChanBox.put(channel.id, channel);
@@ -117,8 +115,8 @@ class PlaylistService {
   }
 
   Future<void> _updateCategoryChannelCounts({
-    required List<LiveCategory> liveCategories,
-    required List<LiveChannel> liveChannels,
+    required List<LiveTvCategory> liveCategories,
+    required List<LiveTvChannel> liveChannels,
   }) async {
     final countMap = <String, int>{};
     for (final channel in liveChannels) {

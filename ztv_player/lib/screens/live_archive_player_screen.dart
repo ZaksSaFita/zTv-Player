@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:ztv_player/models/live_tv_channel.dart';
 import 'package:ztv_player/models/epg_listing.dart';
-import 'package:ztv_player/models/live_channel.dart';
 import 'package:ztv_player/services/playback_service.dart';
 import 'package:ztv_player/widgets/app_video_player.dart';
 import 'package:ztv_player/widgets/media_detail_scaffold.dart';
@@ -13,7 +13,7 @@ class LiveArchivePlayerScreen extends StatelessWidget {
     this.playbackService = const PlaybackService(),
   });
 
-  final LiveChannel channel;
+  final LiveTvChannel channel;
   final EpgListing listing;
   final PlaybackService playbackService;
 
@@ -38,7 +38,8 @@ class LiveArchivePlayerScreen extends StatelessWidget {
           _ArchiveRow(label: 'Stream ID', value: channel.id),
           _ArchiveRow(
             label: 'Time',
-            value: '${_formatTime(listing.start)} - ${_formatTime(listing.end)}',
+            value:
+                '${_formatTime(listing.start)} - ${_formatTime(listing.end)}',
           ),
           _ArchiveRow(
             label: 'Archive',
@@ -57,12 +58,9 @@ class LiveArchivePlayerScreen extends StatelessWidget {
 }
 
 class _ArchiveInfoCard extends StatelessWidget {
-  const _ArchiveInfoCard({
-    required this.channel,
-    required this.listing,
-  });
+  const _ArchiveInfoCard({required this.channel, required this.listing});
 
-  final LiveChannel channel;
+  final LiveTvChannel channel;
   final EpgListing listing;
 
   @override
@@ -120,10 +118,7 @@ class _ArchiveRow extends StatelessWidget {
             ),
           ),
           Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(color: Colors.white),
-            ),
+            child: Text(value, style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
