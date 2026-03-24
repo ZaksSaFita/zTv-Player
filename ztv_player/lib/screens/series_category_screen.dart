@@ -89,8 +89,7 @@ class _SeriesCategoryScreenState extends State<SeriesCategoryScreen> {
                       columns: viewColumns,
                       iconColor: colors.bottomNavIcon,
                       activeColor: colors.bottomNavSelectedIcon,
-                      onListSelected: controller.setListView,
-                      onGridSelected: controller.cycleGridView,
+                      onPressed: controller.toggleView,
                     );
                   },
                 );
@@ -144,13 +143,17 @@ class _SeriesCategoryScreenState extends State<SeriesCategoryScreen> {
                             gridDelegate: AppView.delegateFor(
                               viewColumns,
                               poster: true,
+                              densePoster: true,
                             ),
                             itemCount: series.length,
                             itemBuilder: (context, index) {
                               final item = series[index];
                               return AppPosterGridCard(
                                 title: item.name,
-                                subtitle: _seriesSubtitle(item),
+                                subtitle: viewColumns >= 3
+                                    ? null
+                                    : _seriesSubtitle(item),
+                                compact: viewColumns >= 3,
                                 imageUrl: item.logoUrl,
                                 badge: _seriesBadge(item),
                                 fallbackIcon: Icons.tv_outlined,

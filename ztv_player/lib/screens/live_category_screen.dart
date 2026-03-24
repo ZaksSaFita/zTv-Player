@@ -89,8 +89,7 @@ class _LiveCategoryScreenState extends State<LiveCategoryScreen> {
                       columns: viewColumns,
                       iconColor: colors.bottomNavIcon,
                       activeColor: colors.bottomNavSelectedIcon,
-                      onListSelected: controller.setListView,
-                      onGridSelected: controller.cycleGridView,
+                      onPressed: controller.toggleView,
                     );
                   },
                 );

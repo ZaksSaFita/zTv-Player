@@ -1,3 +1,4 @@
+import 'package:better_player_plus/better_player_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:ztv_player/models/episode.dart';
 import 'package:ztv_player/models/season.dart';
@@ -40,33 +41,53 @@ class _SeriesPlayerScreenState extends State<SeriesPlayerScreen> {
       future: _detailsFuture,
       builder: (context, snapshot) {
         final details = snapshot.data;
+        final playlistEntries = details == null
+            ? const <_EpisodePlaylistEntry>[]
+            : _buildPlaylistEntries(_allEpisodes(details));
+        final episodes = [
+          for (final entry in playlistEntries) entry.episode,
+        ];
+        final selectedEpisode = _selectedEpisode;
+        final selectedIndex = selectedEpisode == null
+            ? -1
+            : episodes.indexWhere((episode) => episode.id == selectedEpisode.id);
         final streamUrl = _selectedEpisode == null
             ? null
             : widget.playbackService.resolveEpisodeStreamUrl(
                 _selectedEpisode!,
                 extension: _selectedEpisode!.containerExtension ?? 'mp4',
               );
+        final playlistDataSources = playlistEntries.isEmpty
+            ? null
+            : [
+                for (final entry in playlistEntries) entry.dataSource,
+              ];
 
         return MediaDetailScaffold(
           title: _selectedEpisode?.name ?? widget.series.name,
           player: AppVideoPlayer(
             streamUrl: streamUrl,
+            playlistDataSources: selectedIndex >= 0 ? playlistDataSources : null,
+            initialPlaylistIndex: selectedIndex >= 0 ? selectedIndex : 0,
             placeholderImageUrl:
                 _selectedEpisode?.logoUrl ?? widget.series.logoUrl,
-            autoInitialize: streamUrl != null && streamUrl.trim().isNotEmpty,
+            autoInitialize: selectedIndex >= 0,
             isLiveStream: false,
+            onPlaylistIndexChanged: selectedIndex < 0
+                ? null
+                : (index) {
+                    if (index < 0 || index >= episodes.length) {
+                      return;
+                    }
+                    final nextEpisode = episodes[index];
+                    if (_selectedEpisode?.id == nextEpisode.id) {
+                      return;
+                    }
+                    setState(() => _selectedEpisode = nextEpisode);
+                  },
             idleTitle: _selectedEpisode == null
                 ? 'Select an episode to start playback.'
                 : null,
-            overlay: details == null
-                ? null
-                : _SeriesPlayerOverlay(
-                    details: details,
-                    selectedEpisode: _selectedEpisode,
-                    onEpisodeSelected: (episode) {
-                      setState(() => _selectedEpisode = episode);
-                    },
-                  ),
           ),
           content: Builder(
             builder: (context) {
@@ -92,6 +113,65 @@ class _SeriesPlayerScreenState extends State<SeriesPlayerScreen> {
       },
     );
   }
+
+  List<Episode> _allEpisodes(SeriesDetails details) {
+    return [
+      for (final season in details.seasons) ...season.episodes,
+    ];
+  }
+
+  List<_EpisodePlaylistEntry> _buildPlaylistEntries(List<Episode> episodes) {
+    final entries = <_EpisodePlaylistEntry>[];
+
+    for (final episode in episodes) {
+      final streamUrl = widget.playbackService.resolveEpisodeStreamUrl(
+        episode,
+        extension: episode.containerExtension ?? 'mp4',
+      );
+      if (streamUrl == null || streamUrl.trim().isEmpty) {
+        continue;
+      }
+
+      entries.add(
+        _EpisodePlaylistEntry(
+          episode: episode,
+          dataSource: BetterPlayerDataSource(
+            BetterPlayerDataSourceType.network,
+            streamUrl,
+            liveStream: false,
+            videoFormat: _detectVideoFormat(streamUrl),
+            notificationConfiguration:
+                const BetterPlayerNotificationConfiguration(
+                  showNotification: false,
+                ),
+          ),
+        ),
+      );
+    }
+
+    return entries;
+  }
+
+  BetterPlayerVideoFormat? _detectVideoFormat(String url) {
+    final lower = url.toLowerCase();
+    if (lower.contains('.m3u8')) {
+      return BetterPlayerVideoFormat.hls;
+    }
+    if (lower.contains('.mpd')) {
+      return BetterPlayerVideoFormat.dash;
+    }
+    return null;
+  }
+}
+
+class _EpisodePlaylistEntry {
+  const _EpisodePlaylistEntry({
+    required this.episode,
+    required this.dataSource,
+  });
+
+  final Episode episode;
+  final BetterPlayerDataSource dataSource;
 }
 
 class _SeriesDetailsContent extends StatelessWidget {
@@ -235,127 +315,6 @@ class _SeasonEpisodesPanel extends StatelessWidget {
     return Text(
       parts.join(' • '),
       style: const TextStyle(color: Colors.white54),
-    );
-  }
-}
-
-class _SeriesPlayerOverlay extends StatelessWidget {
-  const _SeriesPlayerOverlay({
-    required this.details,
-    required this.selectedEpisode,
-    required this.onEpisodeSelected,
-  });
-
-  final SeriesDetails details;
-  final Episode? selectedEpisode;
-  final ValueChanged<Episode> onEpisodeSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    if (selectedEpisode == null) {
-      return const SizedBox.shrink();
-    }
-
-    final currentSeason = details.seasons
-        .where(
-          (season) => season.episodes.any(
-            (episode) => episode.id == selectedEpisode!.id,
-          ),
-        )
-        .cast<Season?>()
-        .firstWhere((season) => season != null, orElse: () => null);
-
-    if (currentSeason == null) {
-      return const SizedBox.shrink();
-    }
-
-    final selectedIndex = currentSeason.episodes.indexWhere(
-      (episode) => episode.id == selectedEpisode!.id,
-    );
-    final canGoPrevious = selectedIndex > 0;
-    final canGoNext =
-        selectedIndex >= 0 && selectedIndex < currentSeason.episodes.length - 1;
-
-    return Positioned(
-      right: 12,
-      bottom: 12,
-      left: 12,
-      child: Row(
-        children: [
-          Expanded(
-            child: _OverlayEpisodeButton(
-              label: 'Previous',
-              icon: Icons.skip_previous_rounded,
-              enabled: canGoPrevious,
-              onTap: canGoPrevious
-                  ? () => onEpisodeSelected(
-                      currentSeason.episodes[selectedIndex - 1],
-                    )
-                  : null,
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: _OverlayEpisodeButton(
-              label: 'Next',
-              icon: Icons.skip_next_rounded,
-              enabled: canGoNext,
-              onTap: canGoNext
-                  ? () => onEpisodeSelected(
-                      currentSeason.episodes[selectedIndex + 1],
-                    )
-                  : null,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _OverlayEpisodeButton extends StatelessWidget {
-  const _OverlayEpisodeButton({
-    required this.label,
-    required this.icon,
-    required this.enabled,
-    this.onTap,
-  });
-
-  final String label;
-  final IconData icon;
-  final bool enabled;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.black.withValues(alpha: enabled ? 0.74 : 0.48),
-      borderRadius: BorderRadius.circular(14),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                color: enabled ? Colors.white : Colors.white38,
-                size: 20,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: TextStyle(
-                  color: enabled ? Colors.white : Colors.white38,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

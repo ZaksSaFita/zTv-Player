@@ -115,12 +115,8 @@ class _MainScreenState extends State<MainScreen> {
                       columns: columns,
                       iconColor: colors.bottomNavIcon,
                       activeColor: colors.bottomNavSelectedIcon,
-                      onListSelected: () {
-                        controller.setListView();
-                        setState(() => _selectedActionIcon = 0);
-                      },
-                      onGridSelected: () {
-                        controller.cycleGridView();
+                      onPressed: () {
+                        controller.toggleView();
                         setState(() => _selectedActionIcon = 0);
                       },
                     );

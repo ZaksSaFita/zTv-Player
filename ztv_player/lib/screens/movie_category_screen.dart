@@ -89,8 +89,7 @@ class _MovieCategoryScreenState extends State<MovieCategoryScreen> {
                       columns: viewColumns,
                       iconColor: colors.bottomNavIcon,
                       activeColor: colors.bottomNavSelectedIcon,
-                      onListSelected: controller.setListView,
-                      onGridSelected: controller.cycleGridView,
+                      onPressed: controller.toggleView,
                     );
                   },
                 );
@@ -144,13 +143,17 @@ class _MovieCategoryScreenState extends State<MovieCategoryScreen> {
                             gridDelegate: AppView.delegateFor(
                               viewColumns,
                               poster: true,
+                              densePoster: true,
                             ),
                             itemCount: movies.length,
                             itemBuilder: (context, index) {
                               final movie = movies[index];
                               return AppPosterGridCard(
                                 title: movie.name,
-                                subtitle: _movieSubtitle(movie),
+                                subtitle: viewColumns >= 3
+                                    ? null
+                                    : _movieSubtitle(movie),
+                                compact: viewColumns >= 3,
                                 imageUrl: movie.logoUrl,
                                 badge: _movieBadge(movie),
                                 fallbackIcon: Icons.movie_creation_outlined,

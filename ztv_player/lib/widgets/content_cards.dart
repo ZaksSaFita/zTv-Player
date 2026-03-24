@@ -161,6 +161,7 @@ class AppPosterGridCard extends StatelessWidget {
   final String? subtitle;
   final String? imageUrl;
   final String? badge;
+  final bool compact;
   final IconData fallbackIcon;
   final Color accentColor;
   final BoxFit imageFit;
@@ -171,6 +172,7 @@ class AppPosterGridCard extends StatelessWidget {
     required this.title,
     required this.fallbackIcon,
     required this.accentColor,
+    this.compact = false,
     this.imageFit = BoxFit.cover,
     this.subtitle,
     this.imageUrl,
@@ -180,6 +182,13 @@ class AppPosterGridCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final badgeTop = compact ? 8.0 : 10.0;
+    final horizontalInset = compact ? 8.0 : 10.0;
+    final bottomInset = compact ? 8.0 : 12.0;
+    final titleFontSize = compact ? 13.0 : 15.0;
+    final subtitleFontSize = compact ? 11.0 : 12.0;
+    final subtitleSpacing = compact ? 4.0 : 6.0;
+
     return InkWell(
       borderRadius: BorderRadius.circular(18),
       onTap: onTap,
@@ -223,14 +232,18 @@ class AppPosterGridCard extends StatelessWidget {
               ),
               if (badge != null && badge!.isNotEmpty)
                 Positioned(
-                  top: 10,
-                  left: 10,
-                  child: _PosterBadge(label: badge!, accentColor: accentColor),
+                  top: badgeTop,
+                  left: horizontalInset,
+                  child: _PosterBadge(
+                    label: badge!,
+                    accentColor: accentColor,
+                    compact: compact,
+                  ),
                 ),
               Positioned(
-                right: 10,
-                bottom: 12,
-                left: 10,
+                right: horizontalInset,
+                bottom: bottomInset,
+                left: horizontalInset,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
@@ -241,20 +254,19 @@ class AppPosterGridCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 15,
                         fontWeight: FontWeight.w700,
                         height: 1.1,
-                      ),
+                      ).copyWith(fontSize: titleFontSize),
                     ),
                     if (subtitle != null && subtitle!.isNotEmpty) ...[
-                      const SizedBox(height: 6),
+                      SizedBox(height: subtitleSpacing),
                       Text(
                         subtitle!,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: Color(0xFFCDCDCD),
-                          fontSize: 12,
+                          fontSize: subtitleFontSize,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -508,13 +520,21 @@ class _PosterVisual extends StatelessWidget {
 class _PosterBadge extends StatelessWidget {
   final String label;
   final Color accentColor;
+  final bool compact;
 
-  const _PosterBadge({required this.label, required this.accentColor});
+  const _PosterBadge({
+    required this.label,
+    required this.accentColor,
+    this.compact = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 8 : 10,
+        vertical: compact ? 4 : 6,
+      ),
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.72),
         borderRadius: BorderRadius.circular(999),
@@ -526,7 +546,7 @@ class _PosterBadge extends StatelessWidget {
         overflow: TextOverflow.ellipsis,
         style: TextStyle(
           color: accentColor,
-          fontSize: 11,
+          fontSize: compact ? 10 : 11,
           fontWeight: FontWeight.w700,
           letterSpacing: 0.2,
         ),

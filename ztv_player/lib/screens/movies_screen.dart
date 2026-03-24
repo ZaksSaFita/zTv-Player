@@ -43,7 +43,10 @@ class MoviesScreen extends StatelessWidget {
                     if (viewColumns > 1) {
                       return GridView.builder(
                         padding: AppView.contentPadding,
-                        gridDelegate: AppView.delegateFor(viewColumns),
+                        gridDelegate: AppView.delegateFor(
+                          viewColumns,
+                          denseTextGrid: true,
+                        ),
                         itemCount: categories.length,
                         itemBuilder: (context, index) {
                           final category = categories[index];
