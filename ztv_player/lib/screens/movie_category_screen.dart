@@ -155,7 +155,6 @@ class _MovieCategoryScreenState extends State<MovieCategoryScreen> {
                                     : _movieSubtitle(movie),
                                 compact: viewColumns >= 3,
                                 imageUrl: movie.logoUrl,
-                                badge: _movieBadge(movie),
                                 fallbackIcon: Icons.movie_creation_outlined,
                                 accentColor: Colors.red,
                                 onTap: () => _openMovie(context, movie),
@@ -173,7 +172,7 @@ class _MovieCategoryScreenState extends State<MovieCategoryScreen> {
                               title: movie.name,
                               subtitle: _movieSubtitle(movie),
                               imageUrl: movie.logoUrl,
-                              badge: _movieBadge(movie),
+                            //  badge: _movieBadge(movie),
                               fallbackIcon: Icons.movie_creation_outlined,
                               accentColor: Colors.red,
                               onTap: () => _openMovie(context, movie),
@@ -203,16 +202,6 @@ class _MovieCategoryScreenState extends State<MovieCategoryScreen> {
     return parts.isEmpty ? null : parts.join(' • ');
   }
 
-  String? _movieBadge(VodMovie movie) {
-    final parts = <String>[];
-    if (movie.year != null && movie.year!.isNotEmpty) {
-      parts.add(movie.year!);
-    }
-    if (movie.rating != null && movie.rating!.isNotEmpty) {
-      parts.add(_formatRating(movie.rating));
-    }
-    return parts.isEmpty ? null : parts.join('  ·  ');
-  }
 
   String _formatRating(String? value) {
     final rating = double.tryParse(value ?? '');

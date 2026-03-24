@@ -1,7 +1,13 @@
 import 'package:better_player_plus/better_player_plus.dart';
+import 'package:better_player_plus/src/video_player/video_player.dart'
+    show VideoPlayerController;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
+const appPlayerControlsHideDuration = Duration(milliseconds: 1400);
+const appPlayerOverlayIconColor = Colors.white;
+const appPlayerOverlayBackgroundColor = Color(0x55000000);
 
 class AppVideoPlayer extends StatefulWidget {
   const AppVideoPlayer({
@@ -17,6 +23,9 @@ class AppVideoPlayer extends StatefulWidget {
     this.onIdleAction,
     this.onPlaylistIndexChanged,
     this.overlay,
+    this.floatingOverlay,
+    this.floatingOverlayBuilder,
+    this.enableSkips,
   });
 
   final String? streamUrl;
@@ -30,6 +39,10 @@ class AppVideoPlayer extends StatefulWidget {
   final VoidCallback? onIdleAction;
   final ValueChanged<int>? onPlaylistIndexChanged;
   final Widget? overlay;
+  final Widget? floatingOverlay;
+  final Widget Function(BetterPlayerController controller, bool controlsVisible)?
+      floatingOverlayBuilder;
+  final bool? enableSkips;
 
   @override
   State<AppVideoPlayer> createState() => _AppVideoPlayerState();
@@ -38,6 +51,8 @@ class AppVideoPlayer extends StatefulWidget {
 class _AppVideoPlayerState extends State<AppVideoPlayer> {
   BetterPlayerController? _controller;
   String? _errorMessage;
+  int _initializationGeneration = 0;
+  bool _controlsVisible = true;
   final GlobalKey<BetterPlayerPlaylistState> _playlistKey =
       GlobalKey<BetterPlayerPlaylistState>();
 
@@ -60,6 +75,7 @@ class _AppVideoPlayerState extends State<AppVideoPlayer> {
         oldWidget.playlistDataSources!.isNotEmpty;
 
     if (oldUsesPlaylist != _usesPlaylist) {
+      _initializationGeneration++;
       _disposeController();
       if (_errorMessage != null) {
         setState(() => _errorMessage = null);
@@ -70,6 +86,7 @@ class _AppVideoPlayerState extends State<AppVideoPlayer> {
     if (oldWidget.streamUrl != widget.streamUrl ||
         oldWidget.autoInitialize != widget.autoInitialize ||
         oldWidget.isLiveStream != widget.isLiveStream) {
+      _initializationGeneration++;
       _disposeController();
       if (widget.autoInitialize && !_usesPlaylist) {
         _initializePlayer();
@@ -87,6 +104,7 @@ class _AppVideoPlayerState extends State<AppVideoPlayer> {
 
   Future<void> _initializePlayer() async {
     final streamUrl = widget.streamUrl?.trim();
+    final generation = ++_initializationGeneration;
     if (streamUrl == null || streamUrl.isEmpty) {
       if (mounted) {
         setState(() => _errorMessage = null);
@@ -110,7 +128,9 @@ class _AppVideoPlayerState extends State<AppVideoPlayer> {
       final controller = BetterPlayerController(_buildPlayerConfiguration());
       await controller.setupDataSource(dataSource);
 
-      if (!mounted) {
+      if (!mounted ||
+          generation != _initializationGeneration ||
+          widget.streamUrl?.trim() != streamUrl) {
         controller.dispose(forceDispose: true);
         return;
       }
@@ -123,7 +143,7 @@ class _AppVideoPlayerState extends State<AppVideoPlayer> {
       debugPrint('BetterPlayer failed for: $streamUrl');
       debugPrint('BetterPlayer error: $error');
       debugPrintStack(stackTrace: stackTrace);
-      if (!mounted) {
+      if (!mounted || generation != _initializationGeneration) {
         return;
       }
       setState(() {
@@ -147,6 +167,7 @@ class _AppVideoPlayerState extends State<AppVideoPlayer> {
   void _disposeController() {
     final controller = _controller;
     if (controller != null) {
+      controller.pause();
       controller.dispose(forceDispose: true);
     }
     _controller = null;
@@ -161,46 +182,67 @@ class _AppVideoPlayerState extends State<AppVideoPlayer> {
             .map((dataSource) => dataSource.url)
             .join('|')
         : '';
+    final activeController = hasPlaylist
+        ? _playlistKey.currentState?.betterPlayerPlaylistController?.betterPlayerController
+        : _controller;
+
+    final playerChild = hasPlaylist
+        ? KeyedSubtree(
+            key: ValueKey(
+              'playlist-$playlistSignature-${widget.initialPlaylistIndex}',
+            ),
+            child: BetterPlayerPlaylist(
+              key: _playlistKey,
+              betterPlayerDataSourceList: playlistDataSources!,
+              betterPlayerConfiguration: _buildPlayerConfiguration(),
+              betterPlayerPlaylistConfiguration: BetterPlayerPlaylistConfiguration(
+                initialStartIndex: widget.initialPlaylistIndex,
+                loopVideos: false,
+              ),
+            ),
+          )
+        : _controller == null
+        ? _PlayerFallback(
+            placeholderImageUrl: widget.placeholderImageUrl,
+            errorMessage: _errorMessage,
+            idleTitle: widget.idleTitle,
+            idleActionLabel: widget.idleActionLabel,
+            onIdleAction: widget.onIdleAction,
+            overlay: widget.overlay,
+            isIdle:
+                !widget.autoInitialize ||
+                (widget.streamUrl == null || widget.streamUrl!.trim().isEmpty),
+            isLoading:
+                widget.autoInitialize &&
+                widget.streamUrl != null &&
+                widget.streamUrl!.trim().isNotEmpty &&
+                _errorMessage == null,
+          )
+        : Stack(
+            fit: StackFit.expand,
+            children: [
+              BetterPlayer(controller: _controller!),
+              if (widget.isLiveStream)
+                _LiveCenterPlayOverlay(
+                  controller: _controller!,
+                  controlsVisible: _controlsVisible,
+                ),
+            ],
+          );
 
     return AspectRatio(
       aspectRatio: 16 / 9,
       child: DecoratedBox(
         decoration: const BoxDecoration(color: Color(0xFF17171F)),
-        child: hasPlaylist
-            ? KeyedSubtree(
-                key: ValueKey(
-                  'playlist-$playlistSignature-${widget.initialPlaylistIndex}',
-                ),
-                child: BetterPlayerPlaylist(
-                  key: _playlistKey,
-                  betterPlayerDataSourceList: playlistDataSources!,
-                  betterPlayerConfiguration: _buildPlayerConfiguration(),
-                  betterPlayerPlaylistConfiguration:
-                      BetterPlayerPlaylistConfiguration(
-                        initialStartIndex: widget.initialPlaylistIndex,
-                        loopVideos: false,
-                      ),
-                ),
-              )
-            : _controller == null
-            ? _PlayerFallback(
-                placeholderImageUrl: widget.placeholderImageUrl,
-                errorMessage: _errorMessage,
-                idleTitle: widget.idleTitle,
-                idleActionLabel: widget.idleActionLabel,
-                onIdleAction: widget.onIdleAction,
-                overlay: widget.overlay,
-                isIdle:
-                    !widget.autoInitialize ||
-                    (widget.streamUrl == null ||
-                        widget.streamUrl!.trim().isEmpty),
-                isLoading:
-                    widget.autoInitialize &&
-                    widget.streamUrl != null &&
-                    widget.streamUrl!.trim().isNotEmpty &&
-                    _errorMessage == null,
-              )
-            : BetterPlayer(controller: _controller!),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            playerChild,
+            if (widget.floatingOverlayBuilder != null && activeController != null)
+              widget.floatingOverlayBuilder!(activeController, _controlsVisible),
+            if (widget.floatingOverlay != null) widget.floatingOverlay!,
+          ],
+        ),
       ),
     );
   }
@@ -238,13 +280,14 @@ class _AppVideoPlayerState extends State<AppVideoPlayer> {
         enableSubtitles: true,
         enableAudioTracks: true,
         enableOverflowMenu: true,
-        enableSkips: !widget.isLiveStream,
+        enableSkips: widget.enableSkips ?? !widget.isLiveStream,
         enablePlaybackSpeed: !widget.isLiveStream,
         enableRetry: true,
         enablePip: false,
-        showControlsOnInitialize: !widget.isLiveStream,
-        controlsHideTime: const Duration(seconds: 3),
-        controlBarColor: Colors.black54,
+        showControlsOnInitialize: true,
+        controlsHideTime: appPlayerControlsHideDuration,
+        controlBarColor:
+            widget.isLiveStream ? Colors.transparent : Colors.black54,
         iconsColor: Colors.white,
         progressBarPlayedColor: Colors.orange,
         progressBarHandleColor: Colors.orange,
@@ -277,6 +320,22 @@ class _AppVideoPlayerState extends State<AppVideoPlayer> {
       return;
     }
 
+    if (event.betterPlayerEventType == BetterPlayerEventType.controlsVisible) {
+      if (_controlsVisible) {
+        return;
+      }
+      setState(() => _controlsVisible = true);
+      return;
+    }
+
+    if (event.betterPlayerEventType == BetterPlayerEventType.controlsHiddenStart) {
+      if (!_controlsVisible) {
+        return;
+      }
+      setState(() => _controlsVisible = false);
+      return;
+    }
+
     if (!_usesPlaylist ||
         widget.onPlaylistIndexChanged == null ||
         (event.betterPlayerEventType != BetterPlayerEventType.setupDataSource &&
@@ -297,6 +356,109 @@ class _AppVideoPlayerState extends State<AppVideoPlayer> {
         widget.onPlaylistIndexChanged!(index);
       }
     });
+  }
+}
+
+class _LiveCenterPlayOverlay extends StatefulWidget {
+  const _LiveCenterPlayOverlay({
+    required this.controller,
+    required this.controlsVisible,
+  });
+
+  final BetterPlayerController controller;
+  final bool controlsVisible;
+
+  @override
+  State<_LiveCenterPlayOverlay> createState() => _LiveCenterPlayOverlayState();
+}
+
+class _LiveCenterPlayOverlayState extends State<_LiveCenterPlayOverlay> {
+  VideoPlayerController? _videoPlayerController;
+
+  @override
+  void initState() {
+    super.initState();
+    _attachController();
+  }
+
+  @override
+  void didUpdateWidget(covariant _LiveCenterPlayOverlay oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      _videoPlayerController?.removeListener(_handleVideoChanged);
+      _attachController();
+    }
+  }
+
+  void _attachController() {
+    _videoPlayerController?.removeListener(_handleVideoChanged);
+    _videoPlayerController = widget.controller.videoPlayerController;
+    _videoPlayerController?.addListener(_handleVideoChanged);
+  }
+
+  @override
+  void dispose() {
+    _videoPlayerController?.removeListener(_handleVideoChanged);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final videoValue = _videoPlayerController?.value;
+    if (videoValue == null || !videoValue.initialized) {
+      return const SizedBox.shrink();
+    }
+
+    final isPlaying = videoValue.isPlaying;
+    final shouldShow = !isPlaying || widget.controlsVisible;
+    return IgnorePointer(
+      ignoring: !shouldShow,
+      child: AnimatedOpacity(
+        opacity: shouldShow ? 1 : 0,
+        duration: appPlayerControlsHideDuration,
+        child: Center(
+          child: Material(
+            color: appPlayerOverlayBackgroundColor,
+            shape: const CircleBorder(),
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              customBorder: const CircleBorder(),
+              onTap: _togglePlayback,
+              child: SizedBox(
+                width: 68,
+                height: 68,
+                child: Center(
+                  child: Icon(
+                    isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                    size: 38,
+                    color: appPlayerOverlayIconColor,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _handleVideoChanged() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  void _togglePlayback() {
+    final videoController = _videoPlayerController;
+    if (videoController == null) {
+      return;
+    }
+
+    if (videoController.value.isPlaying) {
+      widget.controller.pause();
+    } else {
+      widget.controller.play();
+    }
   }
 }
 

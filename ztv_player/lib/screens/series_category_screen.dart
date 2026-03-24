@@ -194,9 +194,7 @@ class _SeriesCategoryScreenState extends State<SeriesCategoryScreen> {
 
   String? _seriesSubtitle(Series series) {
     final parts = <String>[];
-    if (series.rating != null && series.rating!.isNotEmpty) {
-      parts.add('Rating ${_formatRating(series.rating)}');
-    }
+  
     if (series.genre != null && series.genre!.isNotEmpty) {
       parts.add(series.genre!);
     }

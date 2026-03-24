@@ -150,9 +150,7 @@ class _LiveCategoryScreenState extends State<LiveCategoryScreen> {
                               final channel = channels[index];
                               return AppPosterGridCard(
                                 title: channel.name,
-                                subtitle: _channelSubtitle(channel),
                                 imageUrl: channel.logoUrl,
-                                badge: _channelBadge(channel),
                                 fallbackIcon: Icons.tv,
                                 accentColor: Colors.blue,
                                 imageFit: BoxFit.contain,
@@ -178,9 +176,8 @@ class _LiveCategoryScreenState extends State<LiveCategoryScreen> {
 
                             return AppPosterListCard(
                               title: channel.name,
-                              subtitle: _channelSubtitle(channel),
                               imageUrl: channel.logoUrl,
-                              badge: _channelBadge(channel),
+                             // badge: _channelBadge(channel),
                               fallbackIcon: Icons.tv,
                               accentColor: Colors.blue,
                               imageFit: BoxFit.contain,
@@ -208,23 +205,5 @@ class _LiveCategoryScreenState extends State<LiveCategoryScreen> {
     );
   }
 
-  String? _channelSubtitle(LiveTvChannel channel) {
-    final parts = <String>[];
-    parts.add(channel.hasArchive ? 'Archive available' : 'Live channel');
-    if (channel.streamType.isNotEmpty) {
-      parts.add(channel.streamType.toUpperCase());
-    }
-    return parts.join(' • ');
-  }
-
-  String? _channelBadge(LiveTvChannel channel) {
-    final parts = <String>[];
-    if (channel.num != null) {
-      parts.add('CH ${channel.num}');
-    }
-    if (channel.hasArchive) {
-      parts.add('ARCHIVE');
-    }
-    return parts.isEmpty ? null : parts.join('  ·  ');
-  }
+  
 }
