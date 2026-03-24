@@ -39,6 +39,18 @@ class Episode extends HiveObject {
   @JsonKey(readValue: _readDuration)
   final String? duration;
 
+  @HiveField(8)
+  @JsonKey(name: 'container_extension', fromJson: JsonHelpers.asNullableString)
+  final String? containerExtension;
+
+  @HiveField(9)
+  @JsonKey(readValue: _readReleasedate)
+  final String? releaseDate;
+
+  @HiveField(10)
+  @JsonKey(readValue: _readRating)
+  final String? rating;
+
   Episode({
     required this.id,
     required this.name,
@@ -48,6 +60,9 @@ class Episode extends HiveObject {
     this.streamUrl,
     this.plot,
     this.duration,
+    this.containerExtension,
+    this.releaseDate,
+    this.rating,
   });
 
   factory Episode.fromJson(Map<String, dynamic> json) => _$EpisodeFromJson(json);
@@ -58,14 +73,22 @@ class Episode extends HiveObject {
       JsonHelpers.asString(value, fallback: '0');
 
   static Object? _readMovieImage(Map json, String key) {
-    return (json['info'] as Map?)?['movie_image'];
+    return JsonHelpers.asNullableString((json['info'] as Map?)?['movie_image']);
   }
 
   static Object? _readPlot(Map json, String key) {
-    return (json['info'] as Map?)?['plot'];
+    return JsonHelpers.asNullableString((json['info'] as Map?)?['plot']);
   }
 
   static Object? _readDuration(Map json, String key) {
-    return (json['info'] as Map?)?['duration'];
+    return JsonHelpers.asNullableString((json['info'] as Map?)?['duration']);
+  }
+
+  static Object? _readReleasedate(Map json, String key) {
+    return JsonHelpers.asNullableString((json['info'] as Map?)?['releasedate']);
+  }
+
+  static Object? _readRating(Map json, String key) {
+    return JsonHelpers.asNullableString((json['info'] as Map?)?['rating']);
   }
 }

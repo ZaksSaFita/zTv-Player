@@ -80,15 +80,15 @@ class LiveTvChannelAdapter extends TypeAdapter<LiveTvChannel> {
 LiveTvChannel _$LiveTvChannelFromJson(Map<String, dynamic> json) =>
     LiveTvChannel(
       id: _channelIdFromJson(json['stream_id']),
-      name: json['name'] as String,
+      name: _channelNameFromJson(json['name']),
       categoryId: _channelIdFromJson(json['category_id']),
-      logoUrl: json['stream_icon'] as String?,
-      streamUrl: json['direct_source'] as String?,
+      logoUrl: JsonHelpers.asNullableString(json['stream_icon']),
+      streamUrl: JsonHelpers.asNullableString(json['direct_source']),
       num: JsonHelpers.asNullableInt(json['num']),
-      streamType: json['stream_type'] as String? ?? 'live',
-      epgChannelId: json['epg_channel_id'] as String?,
-      added: json['added'] as String?,
-      customSid: json['custom_sid'] as String?,
+      streamType: _streamTypeFromJson(json['stream_type']),
+      epgChannelId: JsonHelpers.asNullableString(json['epg_channel_id']),
+      added: JsonHelpers.asNullableString(json['added']),
+      customSid: JsonHelpers.asNullableString(json['custom_sid']),
       hasArchive: json['tv_archive'] == null
           ? false
           : _channelBoolFromInt(json['tv_archive']),

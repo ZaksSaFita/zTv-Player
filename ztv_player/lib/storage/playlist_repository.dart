@@ -2,7 +2,13 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:ztv_player/models/epg_listing.dart';
 import 'package:ztv_player/models/live_tv_category.dart';
 import 'package:ztv_player/models/live_tv_channel.dart';
+import 'package:ztv_player/models/episode.dart';
 import 'package:ztv_player/models/playlist.dart';
+import 'package:ztv_player/models/season.dart';
+import 'package:ztv_player/models/series.dart';
+import 'package:ztv_player/models/series_category.dart';
+import 'package:ztv_player/models/vod_category.dart';
+import 'package:ztv_player/models/vod_movie.dart';
 
 class PlaylistRepository {
   const PlaylistRepository();
@@ -16,6 +22,13 @@ class PlaylistRepository {
       Hive.box<LiveTvCategory>('live_categories');
   Box<LiveTvChannel> get _liveChannelBox =>
       Hive.box<LiveTvChannel>('live_channels');
+  Box<VodCategory> get _vodCategoryBox => Hive.box<VodCategory>('vod_categories');
+  Box<VodMovie> get _vodMovieBox => Hive.box<VodMovie>('vod_movies');
+  Box<SeriesCategory> get _seriesCategoryBox =>
+      Hive.box<SeriesCategory>('series_categories');
+  Box<Series> get _seriesBox => Hive.box<Series>('series');
+  Box<Season> get _seasonBox => Hive.box<Season>('seasons');
+  Box<Episode> get _episodeBox => Hive.box<Episode>('episodes');
 
   List<Playlist> getAllPlaylists() {
     return _playlistBox.values.toList()
@@ -105,6 +118,12 @@ class PlaylistRepository {
     await _settingsBox.delete(_activePlaylistIdKey);
     await _liveCategoryBox.clear();
     await _liveChannelBox.clear();
+    await _vodCategoryBox.clear();
+    await _vodMovieBox.clear();
+    await _seriesCategoryBox.clear();
+    await _seriesBox.clear();
+    await _seasonBox.clear();
+    await _episodeBox.clear();
   }
 
   Future<void> deletePlaylist(String playlistId) async {
@@ -140,6 +159,12 @@ class PlaylistRepository {
   Future<void> _hydrateActiveSnapshot(Playlist playlist) async {
     await _liveCategoryBox.clear();
     await _liveChannelBox.clear();
+    await _vodCategoryBox.clear();
+    await _vodMovieBox.clear();
+    await _seriesCategoryBox.clear();
+    await _seriesBox.clear();
+    await _seasonBox.clear();
+    await _episodeBox.clear();
 
     for (final category in playlist.liveCategories) {
       await _liveCategoryBox.put(category.id, category);
@@ -147,6 +172,22 @@ class PlaylistRepository {
 
     for (final channel in playlist.liveChannels) {
       await _liveChannelBox.put(channel.id, channel);
+    }
+
+    for (final category in playlist.vodCategories) {
+      await _vodCategoryBox.put(category.id, category);
+    }
+
+    for (final movie in playlist.vodMovies) {
+      await _vodMovieBox.put(movie.id, movie);
+    }
+
+    for (final category in playlist.seriesCategories) {
+      await _seriesCategoryBox.put(category.id, category);
+    }
+
+    for (final item in playlist.series) {
+      await _seriesBox.put(item.id, item);
     }
   }
 }

@@ -19,17 +19,20 @@ class SeriesCategoryAdapter extends TypeAdapter<SeriesCategory> {
     return SeriesCategory(
       id: fields[0] as String,
       name: fields[1] as String,
+      seriesCount: fields[2] as int?,
     );
   }
 
   @override
   void write(BinaryWriter writer, SeriesCategory obj) {
     writer
-      ..writeByte(2)
+      ..writeByte(3)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
-      ..write(obj.name);
+      ..write(obj.name)
+      ..writeByte(2)
+      ..write(obj.seriesCount);
   }
 
   @override
@@ -50,7 +53,7 @@ class SeriesCategoryAdapter extends TypeAdapter<SeriesCategory> {
 SeriesCategory _$SeriesCategoryFromJson(Map<String, dynamic> json) =>
     SeriesCategory(
       id: SeriesCategory._idFromJson(json['category_id']),
-      name: json['category_name'] as String? ?? 'Unknown',
+      name: JsonHelpers.asString(json['category_name'], fallback: 'Unknown'),
     );
 
 Map<String, dynamic> _$SeriesCategoryToJson(SeriesCategory instance) =>

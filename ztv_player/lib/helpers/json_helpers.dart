@@ -3,11 +3,32 @@ class JsonHelpers {
     if (value == null) {
       return fallback;
     }
+
+    if (value is List) {
+      for (final item in value) {
+        final normalized = asNullableString(item);
+        if (normalized != null) {
+          return normalized;
+        }
+      }
+      return fallback;
+    }
+
     return value.toString();
   }
 
   static String? asNullableString(dynamic value) {
     if (value == null) {
+      return null;
+    }
+
+    if (value is List) {
+      for (final item in value) {
+        final normalized = asNullableString(item);
+        if (normalized != null) {
+          return normalized;
+        }
+      }
       return null;
     }
 
@@ -75,5 +96,32 @@ class JsonHelpers {
     }
 
     return date.substring(0, 4);
+  }
+
+  static DateTime? asNullableDateTime(dynamic value) {
+    final raw = asNullableString(value);
+    if (raw == null) {
+      return null;
+    }
+
+    return DateTime.tryParse(raw);
+  }
+
+  static DateTime asDateTime(
+    dynamic value, {
+    DateTime? fallback,
+  }) {
+    return asNullableDateTime(value) ?? fallback ?? DateTime.fromMillisecondsSinceEpoch(0);
+  }
+
+  static List<Map<String, dynamic>> asMapList(dynamic value) {
+    if (value is List) {
+      return value
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList();
+    }
+
+    return const <Map<String, dynamic>>[];
   }
 }

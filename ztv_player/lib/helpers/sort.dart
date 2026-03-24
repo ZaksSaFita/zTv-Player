@@ -59,6 +59,12 @@ class AppSort {
   static final ScreenUiController liveCategoryController = ScreenUiController(
     initialIsGrid: false,
   );
+  static final ScreenUiController movieCategoryController = ScreenUiController(
+    initialIsGrid: false,
+  );
+  static final ScreenUiController seriesCategoryController = ScreenUiController(
+    initialIsGrid: false,
+  );
 
   static ScreenUiController controller(ScreenSection section) {
     return _controllers[section]!;

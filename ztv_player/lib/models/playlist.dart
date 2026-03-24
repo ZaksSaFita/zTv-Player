@@ -3,6 +3,10 @@ import 'package:json_annotation/json_annotation.dart';
 import 'package:ztv_player/models/epg_listing.dart';
 import 'package:ztv_player/models/live_tv_category.dart';
 import 'package:ztv_player/models/live_tv_channel.dart';
+import 'package:ztv_player/models/series.dart';
+import 'package:ztv_player/models/series_category.dart';
+import 'package:ztv_player/models/vod_category.dart';
+import 'package:ztv_player/models/vod_movie.dart';
 
 part 'playlist.g.dart';
 
@@ -30,6 +34,9 @@ class Playlist extends HiveObject {
   @HiveField(6)
   final DateTime createdAt;
 
+  @HiveField(14)
+  final DateTime? expiresAt;
+
   @HiveField(7)
   @JsonKey(defaultValue: <LiveTvCategory>[])
   final List<LiveTvCategory> liveCategories;
@@ -46,6 +53,22 @@ class Playlist extends HiveObject {
   )
   final Map<String, List<EpgListing>> epgCache;
 
+  @HiveField(10)
+  @JsonKey(defaultValue: <VodCategory>[])
+  final List<VodCategory> vodCategories;
+
+  @HiveField(11)
+  @JsonKey(defaultValue: <VodMovie>[])
+  final List<VodMovie> vodMovies;
+
+  @HiveField(12)
+  @JsonKey(defaultValue: <SeriesCategory>[])
+  final List<SeriesCategory> seriesCategories;
+
+  @HiveField(13)
+  @JsonKey(defaultValue: <Series>[])
+  final List<Series> series;
+
   Playlist({
     required this.id,
     required this.name,
@@ -54,9 +77,14 @@ class Playlist extends HiveObject {
     required this.password,
     required this.isValid,
     required this.createdAt,
+    this.expiresAt,
     this.liveCategories = const [],
     this.liveChannels = const [],
     this.epgCache = const {},
+    this.vodCategories = const [],
+    this.vodMovies = const [],
+    this.seriesCategories = const [],
+    this.series = const [],
   });
 
   factory Playlist.fromJson(Map<String, dynamic> json) =>
@@ -72,9 +100,14 @@ class Playlist extends HiveObject {
     String? password,
     bool? isValid,
     DateTime? createdAt,
+    DateTime? expiresAt,
     List<LiveTvCategory>? liveCategories,
     List<LiveTvChannel>? liveChannels,
     Map<String, List<EpgListing>>? epgCache,
+    List<VodCategory>? vodCategories,
+    List<VodMovie>? vodMovies,
+    List<SeriesCategory>? seriesCategories,
+    List<Series>? series,
   }) {
     return Playlist(
       id: id ?? this.id,
@@ -84,9 +117,14 @@ class Playlist extends HiveObject {
       password: password ?? this.password,
       isValid: isValid ?? this.isValid,
       createdAt: createdAt ?? this.createdAt,
+      expiresAt: expiresAt ?? this.expiresAt,
       liveCategories: liveCategories ?? this.liveCategories,
       liveChannels: liveChannels ?? this.liveChannels,
       epgCache: epgCache ?? this.epgCache,
+      vodCategories: vodCategories ?? this.vodCategories,
+      vodMovies: vodMovies ?? this.vodMovies,
+      seriesCategories: seriesCategories ?? this.seriesCategories,
+      series: series ?? this.series,
     );
   }
 

@@ -7,8 +7,8 @@ part of 'epg_response.dart';
 // **************************************************************************
 
 EpgResponse _$EpgResponseFromJson(Map<String, dynamic> json) => EpgResponse(
-      epgListings: (json['epg_listings'] as List<dynamic>)
-          .map((e) => EpgListing.fromJson(e as Map<String, dynamic>))
+      epgListings: JsonHelpers.asMapList(json['epg_listings'])
+          .map(EpgListing.fromJson)
           .toList(),
     );
 

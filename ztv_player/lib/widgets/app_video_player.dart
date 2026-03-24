@@ -7,10 +7,22 @@ class AppVideoPlayer extends StatefulWidget {
     super.key,
     required this.streamUrl,
     this.placeholderImageUrl,
+    this.autoInitialize = true,
+    this.isLiveStream = true,
+    this.idleTitle,
+    this.idleActionLabel,
+    this.onIdleAction,
+    this.overlay,
   });
 
   final String? streamUrl;
   final String? placeholderImageUrl;
+  final bool autoInitialize;
+  final bool isLiveStream;
+  final String? idleTitle;
+  final String? idleActionLabel;
+  final VoidCallback? onIdleAction;
+  final Widget? overlay;
 
   @override
   State<AppVideoPlayer> createState() => _AppVideoPlayerState();
@@ -23,15 +35,22 @@ class _AppVideoPlayerState extends State<AppVideoPlayer> {
   @override
   void initState() {
     super.initState();
-    _initializePlayer();
+    if (widget.autoInitialize) {
+      _initializePlayer();
+    }
   }
 
   @override
   void didUpdateWidget(covariant AppVideoPlayer oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.streamUrl != widget.streamUrl) {
+    if (oldWidget.streamUrl != widget.streamUrl ||
+        oldWidget.autoInitialize != widget.autoInitialize) {
       _disposeController();
-      _initializePlayer();
+      if (widget.autoInitialize) {
+        _initializePlayer();
+      } else {
+        setState(() => _errorMessage = null);
+      }
     }
   }
 
@@ -44,7 +63,9 @@ class _AppVideoPlayerState extends State<AppVideoPlayer> {
   Future<void> _initializePlayer() async {
     final streamUrl = widget.streamUrl?.trim();
     if (streamUrl == null || streamUrl.isEmpty) {
-      setState(() => _errorMessage = 'Playable stream URL is missing.');
+      if (mounted) {
+        setState(() => _errorMessage = null);
+      }
       return;
     }
 
@@ -66,6 +87,8 @@ class _AppVideoPlayerState extends State<AppVideoPlayer> {
           enableOverflowMenu: false,
           enableSkips: false,
           enablePlaybackSpeed: false,
+          showControlsOnInitialize: true,
+          controlsHideTime: Duration(seconds: 3),
           controlBarColor: Colors.black54,
           iconsColor: Colors.white,
           progressBarPlayedColor: Colors.orange,
@@ -78,7 +101,7 @@ class _AppVideoPlayerState extends State<AppVideoPlayer> {
       final dataSource = BetterPlayerDataSource(
         BetterPlayerDataSourceType.network,
         streamUrl,
-        liveStream: true,
+        liveStream: widget.isLiveStream,
         videoFormat: _detectFormat(streamUrl),
         notificationConfiguration: const BetterPlayerNotificationConfiguration(
           showNotification: false,
@@ -118,7 +141,8 @@ class _AppVideoPlayerState extends State<AppVideoPlayer> {
     }
 
     if (event.betterPlayerEventType == BetterPlayerEventType.exception) {
-      final message = event.parameters?['exception']?.toString() ??
+      final message =
+          event.parameters?['exception']?.toString() ??
           'Unknown playback error.';
       debugPrint('BetterPlayer exception: $message');
       setState(() => _errorMessage = message);
@@ -155,11 +179,25 @@ class _AppVideoPlayerState extends State<AppVideoPlayer> {
             ? _PlayerFallback(
                 placeholderImageUrl: widget.placeholderImageUrl,
                 errorMessage: _errorMessage,
+                idleTitle: widget.idleTitle,
+                idleActionLabel: widget.idleActionLabel,
+                onIdleAction: widget.onIdleAction,
+                overlay: widget.overlay,
+                isIdle:
+                    !widget.autoInitialize ||
+                    (widget.streamUrl == null ||
+                        widget.streamUrl!.trim().isEmpty),
+                isLoading:
+                    widget.autoInitialize &&
+                    widget.streamUrl != null &&
+                    widget.streamUrl!.trim().isNotEmpty &&
+                    _errorMessage == null,
               )
             : Stack(
                 fit: StackFit.expand,
                 children: [
                   BetterPlayer(controller: _controller!),
+                  if (widget.overlay != null) widget.overlay!,
                   if (_errorMessage != null)
                     _ErrorSurface(message: _errorMessage!),
                 ],
@@ -173,46 +211,141 @@ class _PlayerFallback extends StatelessWidget {
   const _PlayerFallback({
     required this.placeholderImageUrl,
     this.errorMessage,
+    required this.isIdle,
+    required this.isLoading,
+    this.idleTitle,
+    this.idleActionLabel,
+    this.onIdleAction,
+    this.overlay,
   });
 
   final String? placeholderImageUrl;
   final String? errorMessage;
+  final bool isIdle;
+  final bool isLoading;
+  final String? idleTitle;
+  final String? idleActionLabel;
+  final VoidCallback? onIdleAction;
+  final Widget? overlay;
 
   @override
   Widget build(BuildContext context) {
     final imageUrl = placeholderImageUrl;
+    final centerOverlay = isIdle
+        ? _IdleOverlay(
+            title: idleTitle,
+            actionLabel: idleActionLabel,
+            onAction: onIdleAction,
+          )
+        : isLoading
+        ? const SizedBox(
+            width: 42,
+            height: 42,
+            child: CircularProgressIndicator(
+              strokeWidth: 3,
+              color: Colors.white,
+            ),
+          )
+        : const SizedBox.shrink();
 
     if (imageUrl != null && imageUrl.isNotEmpty) {
-      return Stack(
-        fit: StackFit.expand,
-        children: [
-          CachedNetworkImage(
-            imageUrl: imageUrl,
-            fit: BoxFit.cover,
-            placeholder: (context, url) =>
-                const Center(child: CircularProgressIndicator()),
-            errorWidget: (context, url, error) =>
-                const _FallbackSurface(showIcon: true),
-          ),
-          const ColoredBox(color: Colors.black38),
-          const Center(
-            child: Icon(
-              Icons.play_circle_fill_rounded,
-              color: Colors.white,
-              size: 68,
+      return GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: isIdle ? onIdleAction : null,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            CachedNetworkImage(
+              imageUrl: imageUrl,
+              fit: BoxFit.cover,
+              placeholder: (context, url) =>
+                  const Center(child: CircularProgressIndicator()),
+              errorWidget: (context, url, error) =>
+                  const _FallbackSurface(showIcon: true),
             ),
-          ),
-          if (errorMessage != null) _ErrorSurface(message: errorMessage!),
-        ],
+            const ColoredBox(color: Colors.black38),
+            Center(child: centerOverlay),
+            if (overlay case final overlayWidget?) overlayWidget,
+            if (errorMessage != null) _ErrorSurface(message: errorMessage!),
+          ],
+        ),
       );
     }
 
     return Stack(
       fit: StackFit.expand,
       children: [
-        const _FallbackSurface(showIcon: true),
+        _FallbackSurface(showIcon: !isIdle),
+        if (isIdle || isLoading)
+          Center(
+            child: _IdleOverlay(
+              title: isIdle ? idleTitle : null,
+              actionLabel: isIdle ? idleActionLabel : null,
+              onAction: isIdle ? onIdleAction : null,
+              loading: isLoading,
+            ),
+          ),
+        if (overlay case final overlayWidget?) overlayWidget,
         if (errorMessage != null) _ErrorSurface(message: errorMessage!),
       ],
+    );
+  }
+}
+
+class _IdleOverlay extends StatelessWidget {
+  const _IdleOverlay({
+    this.title,
+    this.actionLabel,
+    this.onAction,
+    this.loading = false,
+  });
+
+  final String? title;
+  final String? actionLabel;
+  final VoidCallback? onAction;
+  final bool loading;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasAction = actionLabel != null && actionLabel!.trim().isNotEmpty;
+    final hasTitle = title != null && title!.trim().isNotEmpty;
+
+    if (!hasAction && !hasTitle && !loading) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (loading)
+            const SizedBox(
+              width: 42,
+              height: 42,
+              child: CircularProgressIndicator(
+                strokeWidth: 3,
+                color: Colors.white,
+              ),
+            ),
+          if (loading && (hasTitle || hasAction)) const SizedBox(height: 14),
+          if (hasTitle)
+            Text(
+              title!,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          if (hasTitle && hasAction) const SizedBox(height: 14),
+          if (hasAction) ...[
+            const SizedBox(height: 14),
+            FilledButton(onPressed: onAction, child: Text(actionLabel!)),
+          ],
+        ],
+      ),
     );
   }
 }

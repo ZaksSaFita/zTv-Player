@@ -21,6 +21,18 @@ class VodCategory extends HiveObject {
 
   VodCategory({required this.id, required this.name, this.movieCount});
 
+  VodCategory copyWith({
+    String? id,
+    String? name,
+    int? movieCount,
+  }) {
+    return VodCategory(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      movieCount: movieCount ?? this.movieCount,
+    );
+  }
+
   factory VodCategory.fromJson(Map<String, dynamic> json) =>
       _$VodCategoryFromJson(json);
 

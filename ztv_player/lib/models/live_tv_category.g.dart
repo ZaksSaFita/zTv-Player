@@ -56,7 +56,7 @@ class LiveTvCategoryAdapter extends TypeAdapter<LiveTvCategory> {
 LiveTvCategory _$LiveTvCategoryFromJson(Map<String, dynamic> json) =>
     LiveTvCategory(
       id: _liveTvCategoryIdFromJson(json['category_id']),
-      name: json['category_name'] as String? ?? 'Unknown',
+      name: _liveTvCategoryNameFromJson(json['category_name']),
       parentId:
           json['parent_id'] == null ? 0 : JsonHelpers.asInt(json['parent_id']),
     );

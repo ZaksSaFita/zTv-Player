@@ -70,7 +70,7 @@ class _CreatePlaylistScreenState extends State<CreatePlaylistScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Playlist "${result.playlist.name}" loaded with ${result.liveChannelCount} channels!',
+              'Playlist "${result.playlist.name}" loaded with ${result.liveChannelCount} channels, ${result.movieCount} movies and ${result.seriesCount} series.',
             ),
             backgroundColor: Colors.green,
           ),

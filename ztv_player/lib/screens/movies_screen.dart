@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:ztv_player/helpers/sort.dart';
 import 'package:ztv_player/models/vod_category.dart';
+import 'package:ztv_player/screens/movie_category_screen.dart';
 import 'package:ztv_player/services/movie_service.dart';
 import 'package:ztv_player/widgets/content_cards.dart';
 import 'package:ztv_player/widgets/empty_state.dart';
@@ -12,10 +13,10 @@ class MoviesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = AppSort.controller(ScreenSection.movies);
-    const movieService = MovieService();
+    final movieService = MovieService();
 
     return ValueListenableBuilder<Box<VodCategory>>(
-      valueListenable: movieService.listenable(),
+      valueListenable: movieService.categoriesListenable(),
       builder: (context, box, _) {
         return ValueListenableBuilder<SortType>(
           valueListenable: controller.sortNotifier,
@@ -51,6 +52,7 @@ class MoviesScreen extends StatelessWidget {
                             subtitle: '${category.movieCount ?? 0} movies',
                             fallbackIcon: Icons.movie_creation_outlined,
                             accentColor: Colors.red,
+                            onTap: () => _openCategory(context, category),
                           );
                         },
                       );
@@ -66,6 +68,8 @@ class MoviesScreen extends StatelessWidget {
                           subtitle: '${category.movieCount ?? 0} movies',
                           fallbackIcon: Icons.movie_creation_outlined,
                           accentColor: Colors.red,
+                          trailingIcon: Icons.arrow_forward_ios_rounded,
+                          onTap: () => _openCategory(context, category),
                         );
                       },
                     );
@@ -78,4 +82,11 @@ class MoviesScreen extends StatelessWidget {
       },
     );
   }
+}
+
+void _openCategory(BuildContext context, VodCategory category) {
+  Navigator.push(
+    context,
+    MaterialPageRoute(builder: (_) => MovieCategoryScreen(category: category)),
+  );
 }

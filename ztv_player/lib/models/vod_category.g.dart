@@ -52,7 +52,7 @@ class VodCategoryAdapter extends TypeAdapter<VodCategory> {
 
 VodCategory _$VodCategoryFromJson(Map<String, dynamic> json) => VodCategory(
       id: VodCategory._idFromJson(json['category_id']),
-      name: json['category_name'] as String? ?? 'Unknown',
+      name: JsonHelpers.asString(json['category_name'], fallback: 'Unknown'),
     );
 
 Map<String, dynamic> _$VodCategoryToJson(VodCategory instance) =>

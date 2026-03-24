@@ -25,13 +25,16 @@ class EpisodeAdapter extends TypeAdapter<Episode> {
       streamUrl: fields[5] as String?,
       plot: fields[6] as String?,
       duration: fields[7] as String?,
+      containerExtension: fields[8] as String?,
+      releaseDate: fields[9] as String?,
+      rating: fields[10] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, Episode obj) {
     writer
-      ..writeByte(8)
+      ..writeByte(11)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -47,7 +50,13 @@ class EpisodeAdapter extends TypeAdapter<Episode> {
       ..writeByte(6)
       ..write(obj.plot)
       ..writeByte(7)
-      ..write(obj.duration);
+      ..write(obj.duration)
+      ..writeByte(8)
+      ..write(obj.containerExtension)
+      ..writeByte(9)
+      ..write(obj.releaseDate)
+      ..writeByte(10)
+      ..write(obj.rating);
   }
 
   @override
@@ -67,13 +76,24 @@ class EpisodeAdapter extends TypeAdapter<Episode> {
 
 Episode _$EpisodeFromJson(Map<String, dynamic> json) => Episode(
       id: Episode._idFromJson(json['id']),
-      name: json['title'] as String,
+      name:
+          JsonHelpers.asNullableString(json['title'] ?? json['name']) ??
+          'Unknown episode',
       seasonNumber: JsonHelpers.asInt(json['season']),
       episodeNumber: JsonHelpers.asInt(json['episode_num']),
-      logoUrl: Episode._readMovieImage(json, 'logoUrl') as String?,
-      streamUrl: json['direct_source'] as String?,
-      plot: Episode._readPlot(json, 'plot') as String?,
-      duration: Episode._readDuration(json, 'duration') as String?,
+      logoUrl: JsonHelpers.asNullableString(
+        Episode._readMovieImage(json, 'logoUrl'),
+      ),
+      streamUrl: JsonHelpers.asNullableString(json['direct_source']),
+      plot: JsonHelpers.asNullableString(Episode._readPlot(json, 'plot')),
+      duration: JsonHelpers.asNullableString(
+        Episode._readDuration(json, 'duration'),
+      ),
+      containerExtension: JsonHelpers.asNullableString(json['container_extension']),
+      releaseDate: JsonHelpers.asNullableString(
+        Episode._readReleasedate(json, 'releaseDate'),
+      ),
+      rating: JsonHelpers.asNullableString(Episode._readRating(json, 'rating')),
     );
 
 Map<String, dynamic> _$EpisodeToJson(Episode instance) => <String, dynamic>{
@@ -85,4 +105,7 @@ Map<String, dynamic> _$EpisodeToJson(Episode instance) => <String, dynamic>{
       'direct_source': instance.streamUrl,
       'plot': instance.plot,
       'duration': instance.duration,
+      'container_extension': instance.containerExtension,
+      'releaseDate': instance.releaseDate,
+      'rating': instance.rating,
     };

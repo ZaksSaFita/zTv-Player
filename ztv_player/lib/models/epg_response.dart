@@ -1,4 +1,5 @@
 import 'package:json_annotation/json_annotation.dart';
+import 'package:ztv_player/helpers/json_helpers.dart';
 import 'epg_listing.dart';
 
 part 'epg_response.g.dart';

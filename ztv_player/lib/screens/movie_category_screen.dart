@@ -2,30 +2,30 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:ztv_player/helpers/sort.dart';
 import 'package:ztv_player/helpers/theme.dart';
-import 'package:ztv_player/models/live_tv_channel.dart';
-import 'package:ztv_player/models/live_tv_category.dart';
-import 'package:ztv_player/screens/live_channel_player_screen.dart';
-import 'package:ztv_player/services/live_tv_service.dart';
+import 'package:ztv_player/models/vod_category.dart';
+import 'package:ztv_player/models/vod_movie.dart';
+import 'package:ztv_player/screens/movie_player_screen.dart';
+import 'package:ztv_player/services/movie_service.dart';
 import 'package:ztv_player/widgets/app_search_field.dart';
 import 'package:ztv_player/widgets/content_cards.dart';
 import 'package:ztv_player/widgets/empty_state.dart';
 
-class LiveCategoryScreen extends StatefulWidget {
-  final LiveTvCategory category;
+class MovieCategoryScreen extends StatefulWidget {
+  const MovieCategoryScreen({super.key, required this.category});
 
-  const LiveCategoryScreen({super.key, required this.category});
+  final VodCategory category;
 
   @override
-  State<LiveCategoryScreen> createState() => _LiveCategoryScreenState();
+  State<MovieCategoryScreen> createState() => _MovieCategoryScreenState();
 }
 
-class _LiveCategoryScreenState extends State<LiveCategoryScreen> {
+class _MovieCategoryScreenState extends State<MovieCategoryScreen> {
   bool _isSearchOpen = false;
 
   @override
   Widget build(BuildContext context) {
-    final controller = AppSort.liveCategoryController;
-    const channelService = LiveTvService();
+    final controller = AppSort.movieCategoryController;
+    final movieService = MovieService();
 
     return PopScope(
       onPopInvokedWithResult: (_, _) {
@@ -43,7 +43,7 @@ class _LiveCategoryScreenState extends State<LiveCategoryScreen> {
                     builder: (context, query, _) {
                       return AppSearchField(
                         value: query,
-                        hintText: 'Search channels',
+                        hintText: 'Search movies',
                         onChanged: controller.updateSearch,
                       );
                     },
@@ -109,8 +109,8 @@ class _LiveCategoryScreenState extends State<LiveCategoryScreen> {
             ),
           ],
         ),
-        body: ValueListenableBuilder<Box<LiveTvChannel>>(
-          valueListenable: channelService.listenable(),
+        body: ValueListenableBuilder<Box<VodMovie>>(
+          valueListenable: movieService.moviesListenable(),
           builder: (context, box, _) {
             return ValueListenableBuilder<SortType>(
               valueListenable: controller.sortNotifier,
@@ -121,16 +121,16 @@ class _LiveCategoryScreenState extends State<LiveCategoryScreen> {
                     return ValueListenableBuilder<bool>(
                       valueListenable: controller.isGridNotifier,
                       builder: (context, isGrid, _) {
-                        final channels = channelService.getVisibleChannels(
+                        final movies = movieService.getVisibleMovies(
                           categoryId: widget.category.id,
                           sortType: sortType,
                           query: query,
                         );
 
-                        if (channels.isEmpty) {
+                        if (movies.isEmpty) {
                           return const EmptyState(
-                            title: 'No channels found in this category.',
-                            icon: Icons.tv,
+                            title: 'No movies found in this category.',
+                            icon: Icons.movie_creation_outlined,
                           );
                         }
 
@@ -144,26 +144,17 @@ class _LiveCategoryScreenState extends State<LiveCategoryScreen> {
                                   mainAxisSpacing: 14,
                                   childAspectRatio: 0.62,
                                 ),
-                            itemCount: channels.length,
+                            itemCount: movies.length,
                             itemBuilder: (context, index) {
-                              final channel = channels[index];
+                              final movie = movies[index];
                               return AppPosterGridCard(
-                                title: channel.name,
-                                subtitle: _channelSubtitle(channel),
-                                imageUrl: channel.logoUrl,
-                                badge: _channelBadge(channel),
-                                fallbackIcon: Icons.tv,
-                                accentColor: Colors.blue,
-                                imageFit: BoxFit.contain,
-                                onTap: () {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (_) => LiveChannelPlayerScreen(
-                                        channel: channel,
-                                      ),
-                                    ),
-                                  );
-                                },
+                                title: movie.name,
+                                subtitle: _movieSubtitle(movie),
+                                imageUrl: movie.logoUrl,
+                                badge: _movieBadge(movie),
+                                fallbackIcon: Icons.movie_creation_outlined,
+                                accentColor: Colors.red,
+                                onTap: () => _openMovie(context, movie),
                               );
                             },
                           );
@@ -171,27 +162,17 @@ class _LiveCategoryScreenState extends State<LiveCategoryScreen> {
 
                         return ListView.builder(
                           padding: const EdgeInsets.all(12),
-                          itemCount: channels.length,
+                          itemCount: movies.length,
                           itemBuilder: (context, index) {
-                            final channel = channels[index];
-
+                            final movie = movies[index];
                             return AppPosterListCard(
-                              title: channel.name,
-                              subtitle: _channelSubtitle(channel),
-                              imageUrl: channel.logoUrl,
-                              badge: _channelBadge(channel),
-                              fallbackIcon: Icons.tv,
-                              accentColor: Colors.blue,
-                              imageFit: BoxFit.contain,
-                              onTap: () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => LiveChannelPlayerScreen(
-                                      channel: channel,
-                                    ),
-                                  ),
-                                );
-                              },
+                              title: movie.name,
+                              subtitle: _movieSubtitle(movie),
+                              imageUrl: movie.logoUrl,
+                              badge: _movieBadge(movie),
+                              fallbackIcon: Icons.movie_creation_outlined,
+                              accentColor: Colors.red,
+                              onTap: () => _openMovie(context, movie),
                             );
                           },
                         );
@@ -207,23 +188,40 @@ class _LiveCategoryScreenState extends State<LiveCategoryScreen> {
     );
   }
 
-  String? _channelSubtitle(LiveTvChannel channel) {
+  String? _movieSubtitle(VodMovie movie) {
     final parts = <String>[];
-    parts.add(channel.hasArchive ? 'Archive available' : 'Live channel');
-    if (channel.streamType.isNotEmpty) {
-      parts.add(channel.streamType.toUpperCase());
+    if (movie.rating != null && movie.rating!.isNotEmpty) {
+      parts.add('Rating ${_formatRating(movie.rating)}');
     }
-    return parts.join(' • ');
+    if (movie.categoryId.isNotEmpty) {
+      parts.add('Movie');
+    }
+    return parts.isEmpty ? null : parts.join(' • ');
   }
 
-  String? _channelBadge(LiveTvChannel channel) {
+  String? _movieBadge(VodMovie movie) {
     final parts = <String>[];
-    if (channel.num != null) {
-      parts.add('CH ${channel.num}');
+    if (movie.year != null && movie.year!.isNotEmpty) {
+      parts.add(movie.year!);
     }
-    if (channel.hasArchive) {
-      parts.add('ARCHIVE');
+    if (movie.rating != null && movie.rating!.isNotEmpty) {
+      parts.add(_formatRating(movie.rating));
     }
     return parts.isEmpty ? null : parts.join('  ·  ');
+  }
+
+  String _formatRating(String? value) {
+    final rating = double.tryParse(value ?? '');
+    if (rating == null) {
+      return value ?? '';
+    }
+
+    return rating.toStringAsFixed(2);
+  }
+
+  void _openMovie(BuildContext context, VodMovie movie) {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => MoviePlayerScreen(movie: movie)));
   }
 }

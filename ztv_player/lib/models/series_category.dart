@@ -15,7 +15,23 @@ class SeriesCategory extends HiveObject {
   @JsonKey(name: 'category_name', defaultValue: 'Unknown')
   final String name;
 
-  SeriesCategory({required this.id, required this.name});
+  @HiveField(2)
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  final int? seriesCount;
+
+  SeriesCategory({required this.id, required this.name, this.seriesCount});
+
+  SeriesCategory copyWith({
+    String? id,
+    String? name,
+    int? seriesCount,
+  }) {
+    return SeriesCategory(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      seriesCount: seriesCount ?? this.seriesCount,
+    );
+  }
 
   factory SeriesCategory.fromJson(Map<String, dynamic> json) =>
       _$SeriesCategoryFromJson(json);

@@ -20,11 +20,19 @@ class PlaylistLoadResult {
   final Playlist playlist;
   final int liveCategoryCount;
   final int liveChannelCount;
+  final int movieCategoryCount;
+  final int movieCount;
+  final int seriesCategoryCount;
+  final int seriesCount;
 
   const PlaylistLoadResult({
     required this.playlist,
     required this.liveCategoryCount,
     required this.liveChannelCount,
+    required this.movieCategoryCount,
+    required this.movieCount,
+    required this.seriesCategoryCount,
+    required this.seriesCount,
   });
 }
 
@@ -53,7 +61,62 @@ class PlaylistService {
     void Function(PlaylistLoadProgress progress)? onProgress,
     void Function(String status)? onStatusChanged,
   }) async {
-    final playlist = await _builderService.build(
+    final playlist = await _buildPlaylist(
+      request,
+      onProgress: onProgress,
+      onStatusChanged: onStatusChanged,
+    );
+    await _repository.savePlaylist(playlist, setAsActive: true);
+    _emitCompleted(onProgress, onStatusChanged);
+    return _toResult(playlist);
+  }
+
+  Future<PlaylistLoadResult> reloadPlaylist(
+    Playlist playlist, {
+    void Function(PlaylistLoadProgress progress)? onProgress,
+    void Function(String status)? onStatusChanged,
+  }) async {
+    final rebuilt = await _buildPlaylist(
+      PlaylistLoadRequest(
+        name: playlist.name,
+        server: playlist.server,
+        username: playlist.username,
+        password: playlist.password,
+      ),
+      onProgress: onProgress,
+      onStatusChanged: onStatusChanged,
+    );
+
+    final updated = rebuilt.copyWith(id: playlist.id, createdAt: playlist.createdAt);
+    await _repository.updatePlaylist(updated);
+    _emitCompleted(onProgress, onStatusChanged);
+    return _toResult(updated);
+  }
+
+  Future<PlaylistLoadResult> editPlaylist(
+    Playlist playlist, {
+    required PlaylistLoadRequest request,
+    void Function(PlaylistLoadProgress progress)? onProgress,
+    void Function(String status)? onStatusChanged,
+  }) async {
+    final rebuilt = await _buildPlaylist(
+      request,
+      onProgress: onProgress,
+      onStatusChanged: onStatusChanged,
+    );
+
+    final updated = rebuilt.copyWith(id: playlist.id, createdAt: playlist.createdAt);
+    await _repository.updatePlaylist(updated);
+    _emitCompleted(onProgress, onStatusChanged);
+    return _toResult(updated);
+  }
+
+  Future<Playlist> _buildPlaylist(
+    PlaylistLoadRequest request, {
+    void Function(PlaylistLoadProgress progress)? onProgress,
+    void Function(String status)? onStatusChanged,
+  }) {
+    return _builderService.build(
       PlaylistBuilderRequest(
         name: request.name,
         server: request.server,
@@ -67,8 +130,12 @@ class PlaylistService {
         );
       },
     );
+  }
 
-    await _repository.savePlaylist(playlist, setAsActive: true);
+  void _emitCompleted(
+    void Function(PlaylistLoadProgress progress)? onProgress,
+    void Function(String status)? onStatusChanged,
+  ) {
     onStatusChanged?.call('Playlist successfully loaded!');
     onProgress?.call(
       const PlaylistLoadProgress(
@@ -76,11 +143,17 @@ class PlaylistService {
         value: 1,
       ),
     );
+  }
 
+  PlaylistLoadResult _toResult(Playlist playlist) {
     return PlaylistLoadResult(
       playlist: playlist,
       liveCategoryCount: playlist.liveCategories.length,
       liveChannelCount: playlist.liveChannels.length,
+      movieCategoryCount: playlist.vodCategories.length,
+      movieCount: playlist.vodMovies.length,
+      seriesCategoryCount: playlist.seriesCategories.length,
+      seriesCount: playlist.series.length,
     );
   }
 }

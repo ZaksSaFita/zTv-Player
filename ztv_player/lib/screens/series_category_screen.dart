@@ -2,30 +2,30 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:ztv_player/helpers/sort.dart';
 import 'package:ztv_player/helpers/theme.dart';
-import 'package:ztv_player/models/live_tv_channel.dart';
-import 'package:ztv_player/models/live_tv_category.dart';
-import 'package:ztv_player/screens/live_channel_player_screen.dart';
-import 'package:ztv_player/services/live_tv_service.dart';
+import 'package:ztv_player/models/series.dart';
+import 'package:ztv_player/models/series_category.dart';
+import 'package:ztv_player/screens/series_player_screen.dart';
+import 'package:ztv_player/services/series_service.dart';
 import 'package:ztv_player/widgets/app_search_field.dart';
 import 'package:ztv_player/widgets/content_cards.dart';
 import 'package:ztv_player/widgets/empty_state.dart';
 
-class LiveCategoryScreen extends StatefulWidget {
-  final LiveTvCategory category;
+class SeriesCategoryScreen extends StatefulWidget {
+  const SeriesCategoryScreen({super.key, required this.category});
 
-  const LiveCategoryScreen({super.key, required this.category});
+  final SeriesCategory category;
 
   @override
-  State<LiveCategoryScreen> createState() => _LiveCategoryScreenState();
+  State<SeriesCategoryScreen> createState() => _SeriesCategoryScreenState();
 }
 
-class _LiveCategoryScreenState extends State<LiveCategoryScreen> {
+class _SeriesCategoryScreenState extends State<SeriesCategoryScreen> {
   bool _isSearchOpen = false;
 
   @override
   Widget build(BuildContext context) {
-    final controller = AppSort.liveCategoryController;
-    const channelService = LiveTvService();
+    final controller = AppSort.seriesCategoryController;
+    final seriesService = SeriesService();
 
     return PopScope(
       onPopInvokedWithResult: (_, _) {
@@ -43,7 +43,7 @@ class _LiveCategoryScreenState extends State<LiveCategoryScreen> {
                     builder: (context, query, _) {
                       return AppSearchField(
                         value: query,
-                        hintText: 'Search channels',
+                        hintText: 'Search series',
                         onChanged: controller.updateSearch,
                       );
                     },
@@ -109,8 +109,8 @@ class _LiveCategoryScreenState extends State<LiveCategoryScreen> {
             ),
           ],
         ),
-        body: ValueListenableBuilder<Box<LiveTvChannel>>(
-          valueListenable: channelService.listenable(),
+        body: ValueListenableBuilder<Box<Series>>(
+          valueListenable: seriesService.seriesListenable(),
           builder: (context, box, _) {
             return ValueListenableBuilder<SortType>(
               valueListenable: controller.sortNotifier,
@@ -121,16 +121,16 @@ class _LiveCategoryScreenState extends State<LiveCategoryScreen> {
                     return ValueListenableBuilder<bool>(
                       valueListenable: controller.isGridNotifier,
                       builder: (context, isGrid, _) {
-                        final channels = channelService.getVisibleChannels(
+                        final series = seriesService.getVisibleSeries(
                           categoryId: widget.category.id,
                           sortType: sortType,
                           query: query,
                         );
 
-                        if (channels.isEmpty) {
+                        if (series.isEmpty) {
                           return const EmptyState(
-                            title: 'No channels found in this category.',
-                            icon: Icons.tv,
+                            title: 'No series found in this category.',
+                            icon: Icons.tv_outlined,
                           );
                         }
 
@@ -144,26 +144,17 @@ class _LiveCategoryScreenState extends State<LiveCategoryScreen> {
                                   mainAxisSpacing: 14,
                                   childAspectRatio: 0.62,
                                 ),
-                            itemCount: channels.length,
+                            itemCount: series.length,
                             itemBuilder: (context, index) {
-                              final channel = channels[index];
+                              final item = series[index];
                               return AppPosterGridCard(
-                                title: channel.name,
-                                subtitle: _channelSubtitle(channel),
-                                imageUrl: channel.logoUrl,
-                                badge: _channelBadge(channel),
-                                fallbackIcon: Icons.tv,
-                                accentColor: Colors.blue,
-                                imageFit: BoxFit.contain,
-                                onTap: () {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (_) => LiveChannelPlayerScreen(
-                                        channel: channel,
-                                      ),
-                                    ),
-                                  );
-                                },
+                                title: item.name,
+                                subtitle: _seriesSubtitle(item),
+                                imageUrl: item.logoUrl,
+                                badge: _seriesBadge(item),
+                                fallbackIcon: Icons.tv_outlined,
+                                accentColor: Colors.tealAccent,
+                                onTap: () => _openSeries(context, item),
                               );
                             },
                           );
@@ -171,27 +162,17 @@ class _LiveCategoryScreenState extends State<LiveCategoryScreen> {
 
                         return ListView.builder(
                           padding: const EdgeInsets.all(12),
-                          itemCount: channels.length,
+                          itemCount: series.length,
                           itemBuilder: (context, index) {
-                            final channel = channels[index];
-
+                            final item = series[index];
                             return AppPosterListCard(
-                              title: channel.name,
-                              subtitle: _channelSubtitle(channel),
-                              imageUrl: channel.logoUrl,
-                              badge: _channelBadge(channel),
-                              fallbackIcon: Icons.tv,
-                              accentColor: Colors.blue,
-                              imageFit: BoxFit.contain,
-                              onTap: () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => LiveChannelPlayerScreen(
-                                      channel: channel,
-                                    ),
-                                  ),
-                                );
-                              },
+                              title: item.name,
+                              subtitle: _seriesSubtitle(item),
+                              imageUrl: item.logoUrl,
+                              badge: _seriesBadge(item),
+                              fallbackIcon: Icons.tv_outlined,
+                              accentColor: Colors.tealAccent,
+                              onTap: () => _openSeries(context, item),
                             );
                           },
                         );
@@ -207,23 +188,40 @@ class _LiveCategoryScreenState extends State<LiveCategoryScreen> {
     );
   }
 
-  String? _channelSubtitle(LiveTvChannel channel) {
+  String? _seriesSubtitle(Series series) {
     final parts = <String>[];
-    parts.add(channel.hasArchive ? 'Archive available' : 'Live channel');
-    if (channel.streamType.isNotEmpty) {
-      parts.add(channel.streamType.toUpperCase());
+    if (series.rating != null && series.rating!.isNotEmpty) {
+      parts.add('Rating ${_formatRating(series.rating)}');
     }
-    return parts.join(' • ');
+    if (series.genre != null && series.genre!.isNotEmpty) {
+      parts.add(series.genre!);
+    }
+    return parts.isEmpty ? null : parts.join(' • ');
   }
 
-  String? _channelBadge(LiveTvChannel channel) {
+  String? _seriesBadge(Series series) {
     final parts = <String>[];
-    if (channel.num != null) {
-      parts.add('CH ${channel.num}');
+    if (series.year != null && series.year!.isNotEmpty) {
+      parts.add(series.year!);
     }
-    if (channel.hasArchive) {
-      parts.add('ARCHIVE');
+    if (series.rating != null && series.rating!.isNotEmpty) {
+      parts.add(_formatRating(series.rating));
     }
     return parts.isEmpty ? null : parts.join('  ·  ');
+  }
+
+  String _formatRating(String? value) {
+    final rating = double.tryParse(value ?? '');
+    if (rating == null) {
+      return value ?? '';
+    }
+
+    return rating.toStringAsFixed(2);
+  }
+
+  void _openSeries(BuildContext context, Series series) {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => SeriesPlayerScreen(series: series)),
+    );
   }
 }

@@ -23,13 +23,19 @@ class SeriesAdapter extends TypeAdapter<Series> {
       logoUrl: fields[3] as String?,
       plot: fields[4] as String?,
       year: fields[5] as String?,
+      num: fields[6] as int?,
+      rating: fields[7] as String?,
+      genre: fields[8] as String?,
+      cast: fields[9] as String?,
+      director: fields[10] as String?,
+      backdropUrl: fields[11] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, Series obj) {
     writer
-      ..writeByte(6)
+      ..writeByte(12)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -41,7 +47,19 @@ class SeriesAdapter extends TypeAdapter<Series> {
       ..writeByte(4)
       ..write(obj.plot)
       ..writeByte(5)
-      ..write(obj.year);
+      ..write(obj.year)
+      ..writeByte(6)
+      ..write(obj.num)
+      ..writeByte(7)
+      ..write(obj.rating)
+      ..writeByte(8)
+      ..write(obj.genre)
+      ..writeByte(9)
+      ..write(obj.cast)
+      ..writeByte(10)
+      ..write(obj.director)
+      ..writeByte(11)
+      ..write(obj.backdropUrl);
   }
 
   @override
@@ -61,11 +79,19 @@ class SeriesAdapter extends TypeAdapter<Series> {
 
 Series _$SeriesFromJson(Map<String, dynamic> json) => Series(
       id: Series._idFromJson(json['series_id']),
-      name: json['name'] as String,
+      name: Series._nameFromJson(json['name']),
       categoryId: Series._idFromJson(json['category_id']),
-      logoUrl: json['cover'] as String?,
-      plot: json['plot'] as String?,
+      logoUrl: JsonHelpers.asNullableString(json['cover']),
+      plot: JsonHelpers.asNullableString(json['plot']),
       year: JsonHelpers.yearFromDate(json['releaseDate']),
+      num: JsonHelpers.asNullableInt(json['num']),
+      rating: Series._ratingFromJson(json['rating']),
+      genre: JsonHelpers.asNullableString(json['genre']),
+      cast: JsonHelpers.asNullableString(json['cast']),
+      director: JsonHelpers.asNullableString(json['director']),
+      backdropUrl: JsonHelpers.asNullableString(
+        Series._readBackdrop(json, 'backdropUrl'),
+      ),
     );
 
 Map<String, dynamic> _$SeriesToJson(Series instance) => <String, dynamic>{
@@ -75,4 +101,10 @@ Map<String, dynamic> _$SeriesToJson(Series instance) => <String, dynamic>{
       'cover': instance.logoUrl,
       'plot': instance.plot,
       'releaseDate': instance.year,
+      'num': instance.num,
+      'rating': instance.rating,
+      'genre': instance.genre,
+      'cast': instance.cast,
+      'director': instance.director,
+      'backdropUrl': instance.backdropUrl,
     };

@@ -7,6 +7,9 @@ part 'live_tv_category.g.dart';
 String _liveTvCategoryIdFromJson(dynamic value) =>
     JsonHelpers.asString(value, fallback: '0');
 
+String _liveTvCategoryNameFromJson(dynamic value) =>
+    JsonHelpers.asString(value, fallback: 'Unknown');
+
 @HiveType(typeId: 1)
 @JsonSerializable()
 class LiveTvCategory extends HiveObject {
@@ -15,7 +18,7 @@ class LiveTvCategory extends HiveObject {
   final String id;
 
   @HiveField(1)
-  @JsonKey(name: 'category_name', defaultValue: 'Unknown')
+  @JsonKey(name: 'category_name', fromJson: _liveTvCategoryNameFromJson)
   final String name;
 
   @HiveField(2)

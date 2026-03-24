@@ -5,6 +5,12 @@ import 'package:ztv_player/models/epg_listing.dart';
 import 'package:ztv_player/models/epg_response.dart';
 import 'package:ztv_player/models/live_tv_category.dart';
 import 'package:ztv_player/models/live_tv_channel.dart';
+import 'package:ztv_player/models/series.dart';
+import 'package:ztv_player/models/series_category.dart';
+import 'package:ztv_player/models/series_details.dart';
+import 'package:ztv_player/models/vod_category.dart';
+import 'package:ztv_player/models/vod_details.dart';
+import 'package:ztv_player/models/vod_movie.dart';
 
 class XtreamApiService {
   XtreamApiService({Dio? dio}) : _dio = dio ?? Dio();
@@ -105,6 +111,118 @@ class XtreamApiService {
     );
   }
 
+  Future<List<VodCategory>> fetchVodCategories({
+    required String server,
+    required String username,
+    required String password,
+  }) async {
+    final data = await _getList(
+      server: server,
+      username: username,
+      password: password,
+      action: 'get_vod_categories',
+    );
+
+    return data
+        .map((item) => VodCategory.fromJson(Map<String, dynamic>.from(item)))
+        .toList();
+  }
+
+  Future<List<VodMovie>> fetchVodMovies({
+    required String server,
+    required String username,
+    required String password,
+  }) async {
+    final data = await _getList(
+      server: server,
+      username: username,
+      password: password,
+      action: 'get_vod_streams',
+    );
+
+    return data
+        .map((item) => VodMovie.fromJson(Map<String, dynamic>.from(item)))
+        .where((movie) => movie.id.trim().isNotEmpty)
+        .toList();
+  }
+
+  Future<VodDetails> fetchVodDetails({
+    required String server,
+    required String username,
+    required String password,
+    required String vodId,
+  }) async {
+    final data = await _getDecodedJson(
+      server: server,
+      username: username,
+      password: password,
+      action: 'get_vod_info',
+      vodId: vodId,
+    );
+
+    if (data is! Map) {
+      throw Exception('Invalid response for get_vod_info.');
+    }
+
+    return VodDetails.fromJson(Map<String, dynamic>.from(data));
+  }
+
+  Future<List<SeriesCategory>> fetchSeriesCategories({
+    required String server,
+    required String username,
+    required String password,
+  }) async {
+    final data = await _getList(
+      server: server,
+      username: username,
+      password: password,
+      action: 'get_series_categories',
+    );
+
+    return data
+        .map((item) => SeriesCategory.fromJson(Map<String, dynamic>.from(item)))
+        .toList();
+  }
+
+  Future<List<Series>> fetchSeries({
+    required String server,
+    required String username,
+    required String password,
+  }) async {
+    final data = await _getList(
+      server: server,
+      username: username,
+      password: password,
+      action: 'get_series',
+    );
+
+    return data
+        .map((item) => Series.fromJson(Map<String, dynamic>.from(item)))
+        .where((series) => series.id.trim().isNotEmpty)
+        .toList();
+  }
+
+  Future<SeriesDetails> fetchSeriesDetails({
+    required String server,
+    required String username,
+    required String password,
+    required String seriesId,
+  }) async {
+    final data = await _getDecodedJson(
+      server: server,
+      username: username,
+      password: password,
+      action: 'get_series_info',
+      seriesId: seriesId,
+    );
+
+    if (data is! Map) {
+      throw Exception('Invalid response for get_series_info.');
+    }
+
+    return SeriesDetails.fromJson(Map<String, dynamic>.from(data), seriesId);
+  }
+
   Future<List<dynamic>> _getList({
     required String server,
     required String username,
@@ -172,6 +290,8 @@ class XtreamApiService {
     required String password,
     String? action,
     String? streamId,
+    String? vodId,
+    String? seriesId,
     Map<String, dynamic>? extraQueryParameters,
   }) async {
     final queryParameters = <String, dynamic>{
@@ -185,6 +305,14 @@ class XtreamApiService {
 
     if (streamId != null) {
       queryParameters['stream_id'] = streamId;
+    }
+
+    if (vodId != null) {
+      queryParameters['vod_id'] = vodId;
+    }
+
+    if (seriesId != null) {
+      queryParameters['series_id'] = seriesId;
     }
 
     if (extraQueryParameters != null) {
