@@ -1,16 +1,15 @@
-import 'package:dio/dio.dart';
 import 'package:ztv_player/models/epg_listing.dart';
-import 'package:ztv_player/models/epg_response.dart';
 import 'package:ztv_player/services/settings_service.dart';
+import 'package:ztv_player/services/xtream_api_service.dart';
 
 class EpgService {
   EpgService({
     this.settingsService = const SettingsService(),
-    Dio? dio,
-  }) : _dio = dio ?? Dio();
+    XtreamApiService? apiService,
+  }) : _apiService = apiService ?? XtreamApiService();
 
   final SettingsService settingsService;
-  final Dio _dio;
+  final XtreamApiService _apiService;
 
   Future<List<EpgListing>> getShortEpg({
     required String streamId,
@@ -44,34 +43,22 @@ class EpgService {
       return const <EpgListing>[];
     }
 
-    final server = playlist.server.endsWith('/')
-        ? playlist.server.substring(0, playlist.server.length - 1)
-        : playlist.server;
-
-    final queryParameters = <String, dynamic>{
-      'username': playlist.username,
-      'password': playlist.password,
-      'action': action,
-      'stream_id': streamId,
-    };
-
-    if (limit != null) {
-      queryParameters['limit'] = limit;
+    if (action == 'get_simple_data_table') {
+      return _apiService.fetchSimpleDataTable(
+        server: playlist.server,
+        username: playlist.username,
+        password: playlist.password,
+        streamId: streamId,
+        limit: limit,
+      );
     }
 
-    final response = await _dio.get(
-      '$server/player_api.php',
-      queryParameters: queryParameters,
+    return _apiService.fetchShortEpg(
+      server: playlist.server,
+      username: playlist.username,
+      password: playlist.password,
+      streamId: streamId,
+      limit: limit,
     );
-
-    final data = response.data;
-    if (data is! Map) {
-      return const <EpgListing>[];
-    }
-
-    final epgResponse = EpgResponse.fromJson(Map<String, dynamic>.from(data));
-    final listings = epgResponse.epgListings.toList()
-      ..sort((a, b) => a.start.compareTo(b.start));
-    return listings;
   }
 }

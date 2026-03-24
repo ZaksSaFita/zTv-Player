@@ -63,6 +63,8 @@ class _LiveChannelPlayerScreenState extends State<LiveChannelPlayerScreen> {
 }
 
 class _LiveChannelDetailContent extends StatelessWidget {
+  static const _archiveTabEnabled = false;
+
   const _LiveChannelDetailContent({
     required this.channel,
     required this.streamAvailable,
@@ -88,18 +90,29 @@ class _LiveChannelDetailContent extends StatelessWidget {
           // Ovdje podesis gornje tabove za content koji ide ispod playera.
           Container(
             color: const Color(0xFF23232D),
-            child: const TabBar(
+            child: TabBar(
+              onTap: (index) {
+                if (index == 1 && !_archiveTabEnabled) {
+                  DefaultTabController.of(context).animateTo(0);
+                }
+              },
               indicatorColor: Colors.amber,
               labelColor: Colors.amber,
               unselectedLabelColor: Colors.white70,
-              tabs: [
+              tabs: const [
                 Tab(text: 'Live'),
-                Tab(text: 'Archive'),
+                Tab(
+                  child: Text(
+                    'Archive',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ),
               ],
             ),
           ),
           Expanded(
             child: TabBarView(
+              physics: const NeverScrollableScrollPhysics(),
               children: [
                 // LIVE TAB: ovdje slazes sve komponente koje zelis ispod playera za live sadrzaj.
                 FutureBuilder<List<EpgListing>>(
@@ -127,50 +140,8 @@ class _LiveChannelDetailContent extends StatelessWidget {
                     );
                   },
                 ),
-                // ARCHIVE TAB: ovdje slazes sadrzaj za gledanje unazad.
-                FutureBuilder<List<EpgListing>>(
-                  future: epgService.getArchiveEpg(streamId: channel.id),
-                  builder: (context, snapshot) {
-                    final listings = snapshot.data ?? const <EpgListing>[];
-                    final archiveListings = listings
-                        .where((listing) => listing.hasArchive)
-                        .toList();
-
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-
-                    if (snapshot.hasError || archiveListings.isEmpty) {
-                      return const Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(24),
-                          child: Text(
-                            'Nema arhive za ovaj kanal.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: Colors.white70,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ),
-                      );
-                    }
-
-                    return ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: archiveListings.length,
-                      itemBuilder: (context, index) {
-                        final listing = archiveListings[index];
-                        // Ovdje podesis kako izgleda i radi jedna archive stavka.
-                        return _ArchiveTile(
-                          listing: listing,
-                          isSelected: selectedArchiveListing?.id == listing.id,
-                          onTap: () => onArchiveSelected(listing),
-                        );
-                      },
-                    );
-                  },
-                ),
+                // ARCHIVE TAB: privremeno disabled dok ne zavrsimo archive flow.
+                const _ArchiveDisabledState(),
               ],
             ),
           ),
@@ -330,5 +301,27 @@ class _ArchiveTile extends StatelessWidget {
     final hour = value.hour.toString().padLeft(2, '0');
     final minute = value.minute.toString().padLeft(2, '0');
     return '$hour:$minute';
+  }
+}
+
+class _ArchiveDisabledState extends StatelessWidget {
+  const _ArchiveDisabledState();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Padding(
+        padding: EdgeInsets.all(24),
+        child: Text(
+          'Archive je privremeno onemogucen.',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Colors.white54,
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),
+    );
   }
 }

@@ -3,6 +3,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:ztv_player/helpers/theme.dart';
 import 'package:ztv_player/models/playlist.dart';
 import 'package:ztv_player/screens/create_playlist_screen.dart';
+import 'package:ztv_player/services/settings_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -13,7 +14,8 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final Box settingsBox = Hive.box('settings');
-  Playlist? selectedPlaylist;
+  final SettingsService _settingsService = SettingsService();
+  String? selectedPlaylistId;
 
   @override
   void initState() {
@@ -22,16 +24,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _loadCurrentPlaylist() {
-    final playlistBox = Hive.box<Playlist>('playlists');
-    final currentPlaylistIndex =
-        settingsBox.get('currentPlaylist', defaultValue: -1) as int;
-
-    if (currentPlaylistIndex >= 0 &&
-        currentPlaylistIndex < playlistBox.length) {
-      setState(() {
-        selectedPlaylist = playlistBox.getAt(currentPlaylistIndex);
-      });
-    }
+    setState(() {
+      selectedPlaylistId = _settingsService.getCurrentPlaylist()?.id;
+    });
   }
 
   void _switchTheme(AppThemeType type) {
@@ -39,21 +34,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     settingsBox.put('theme', type.index);
   }
 
-  void _setCurrentPlaylist(Playlist? playlist) {
-    final playlistBox = Hive.box<Playlist>('playlists');
-    if (playlist != null) {
-      final index = playlistBox.values.toList().indexOf(playlist);
-      if (index != -1) {
-        settingsBox.put('currentPlaylist', index);
-      }
-    } else {
-      settingsBox.put('currentPlaylist', -1);
-    }
-    setState(() => selectedPlaylist = playlist);
+  Future<void> _setCurrentPlaylist(Playlist? playlist) async {
+    await _settingsService.setCurrentPlaylist(playlist);
+    setState(() => selectedPlaylistId = playlist?.id);
   }
 
   Future<void> _deletePlaylist(Playlist playlist) async {
-    final playlistBox = Hive.box<Playlist>('playlists');
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -75,23 +61,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (!mounted) return;
 
     if (confirmed == true) {
-      final index = playlistBox.values.toList().indexOf(playlist);
-      if (index != -1) {
-        await playlistBox.deleteAt(index);
-        _setCurrentPlaylist(null);
-        if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('Playlist deleted')));
-        }
+      await _settingsService.deletePlaylist(playlist);
+      if (mounted) {
+        setState(() {
+          selectedPlaylistId = _settingsService.getCurrentPlaylist()?.id;
+        });
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Playlist deleted')));
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final playlistBox = Hive.box<Playlist>('playlists');
-    final playlists = playlistBox.values.toList();
+    final playlists = _settingsService.getPlaylists();
+    Playlist? selectedPlaylist;
+    for (final playlist in playlists) {
+      if (playlist.id == selectedPlaylistId) {
+        selectedPlaylist = playlist;
+        break;
+      }
+    }
 
     return Scaffold(
       body: ListView(
@@ -108,8 +99,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               border: Border.all(color: Colors.grey),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: DropdownButton<Playlist?>(
-              value: selectedPlaylist,
+            child: DropdownButton<String?>(
+              value: selectedPlaylistId,
               isExpanded: true,
               underline: const SizedBox(),
               hint: const Text('Select a playlist'),
@@ -117,12 +108,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 const DropdownMenuItem(value: null, child: Text('None')),
                 ...playlists.map((p) {
                   return DropdownMenuItem(
-                    value: p,
+                    value: p.id,
                     child: Text(p.name.isNotEmpty ? p.name : 'Unnamed'),
                   );
                 }),
               ],
-              onChanged: (playlist) {
+              onChanged: (playlistId) {
+                Playlist? playlist;
+                for (final item in playlists) {
+                  if (item.id == playlistId) {
+                    playlist = item;
+                    break;
+                  }
+                }
                 _setCurrentPlaylist(playlist);
               },
             ),
@@ -193,15 +191,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const SizedBox(height: 12),
           ],
           ElevatedButton.icon(
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const CreatePlaylistScreen()),
-            ),
+            onPressed: playlists.length >= 5
+                ? null
+                : () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const CreatePlaylistScreen(),
+                    ),
+                  ),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.green,
               foregroundColor: Colors.white,
             ),
             icon: const Icon(Icons.add),
-            label: const Text('Add new playlist'),
+            label: Text(
+              playlists.length >= 5
+                  ? 'Maximum playlists reached'
+                  : 'Add new playlist',
+            ),
           ),
           const SizedBox(height: 24),
           const Text(

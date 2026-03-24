@@ -87,9 +87,24 @@ class PlaybackService {
   }
 
   String _normalizedServer(String server) {
-    return server.endsWith('/')
-        ? server.substring(0, server.length - 1)
-        : server;
+    var normalized = server.trim();
+
+    if (normalized.endsWith('/')) {
+      normalized = normalized.substring(0, normalized.length - 1);
+    }
+
+    if (normalized.endsWith('/player_api.php')) {
+      normalized = normalized.substring(
+        0,
+        normalized.length - '/player_api.php'.length,
+      );
+    }
+
+    if (normalized.endsWith('/get.php')) {
+      normalized = normalized.substring(0, normalized.length - '/get.php'.length);
+    }
+
+    return normalized;
   }
 
   int _archiveDurationMinutes(EpgListing listing) {

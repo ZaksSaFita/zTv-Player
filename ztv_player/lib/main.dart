@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:media_kit/media_kit.dart' hide Playlist;
 import 'package:ztv_player/helpers/theme.dart';
 import 'package:ztv_player/models/live_tv_channel.dart';
 import 'package:ztv_player/models/episode.dart';
@@ -14,10 +13,10 @@ import 'package:ztv_player/models/vod_category.dart';
 import 'package:ztv_player/models/vod_movie.dart';
 import 'package:ztv_player/screens/create_playlist_screen.dart';
 import 'package:ztv_player/screens/layout_screen/main_screen.dart';
+import 'package:ztv_player/storage/playlist_repository.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  MediaKit.ensureInitialized();
 
   await Hive.initFlutter();
 
@@ -47,6 +46,7 @@ void main() async {
   final savedThemeIndex =
       settings.get('theme', defaultValue: AppThemeType.dark.index) as int;
   AppTheme.notifier.value = AppThemeType.values[savedThemeIndex];
+  await PlaylistRepository().initialize();
 
   runApp(const MyApp());
 }

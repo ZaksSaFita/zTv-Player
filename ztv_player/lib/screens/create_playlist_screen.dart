@@ -10,7 +10,7 @@ class CreatePlaylistScreen extends StatefulWidget {
 }
 
 class _CreatePlaylistScreenState extends State<CreatePlaylistScreen> {
-  final _playlistService = const PlaylistService();
+  final _playlistService = PlaylistService();
   final _nameController = TextEditingController();
   final _serverController = TextEditingController();
   final _usernameController = TextEditingController();
@@ -18,6 +18,7 @@ class _CreatePlaylistScreenState extends State<CreatePlaylistScreen> {
 
   bool _isLoading = false;
   String _status = '';
+  double _progress = 0;
 
   Future<void> _createAndSavePlaylist() async {
     final name = _nameController.text.trim();
@@ -37,6 +38,7 @@ class _CreatePlaylistScreenState extends State<CreatePlaylistScreen> {
     setState(() {
       _isLoading = true;
       _status = 'Testing connection...';
+      _progress = 0;
     });
 
     try {
@@ -47,6 +49,15 @@ class _CreatePlaylistScreenState extends State<CreatePlaylistScreen> {
           username: username,
           password: password,
         ),
+        onProgress: (progress) {
+          if (!mounted) {
+            return;
+          }
+          setState(() {
+            _status = progress.status;
+            _progress = progress.value;
+          });
+        },
         onStatusChanged: (status) {
           if (!mounted) {
             return;
@@ -140,10 +151,26 @@ class _CreatePlaylistScreenState extends State<CreatePlaylistScreen> {
               if (_status.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 20),
-                  child: Text(
-                    _status,
-                    style: const TextStyle(color: Colors.orange),
-                    textAlign: TextAlign.center,
+                  child: Column(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(999),
+                        child: LinearProgressIndicator(
+                          value: _isLoading ? _progress : 1,
+                          minHeight: 10,
+                          backgroundColor: Colors.white12,
+                          valueColor: const AlwaysStoppedAnimation<Color>(
+                            Colors.orange,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        _status,
+                        style: const TextStyle(color: Colors.orange),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
                   ),
                 ),
               ElevatedButton(

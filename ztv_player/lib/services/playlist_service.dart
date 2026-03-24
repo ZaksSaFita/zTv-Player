@@ -1,10 +1,6 @@
-import 'package:dio/dio.dart';
-import 'package:hive_flutter/hive_flutter.dart';
-import 'package:ztv_player/helpers/xtream_parser.dart';
-import 'package:ztv_player/models/live_tv_channel.dart';
-import 'package:ztv_player/models/live_tv_category.dart';
 import 'package:ztv_player/models/playlist.dart';
-import 'package:ztv_player/services/settings_service.dart';
+import 'package:ztv_player/services/playlist_builder_service.dart';
+import 'package:ztv_player/storage/playlist_repository.dart';
 
 class PlaylistLoadRequest {
   final String name;
@@ -22,110 +18,69 @@ class PlaylistLoadRequest {
 
 class PlaylistLoadResult {
   final Playlist playlist;
+  final int liveCategoryCount;
   final int liveChannelCount;
 
   const PlaylistLoadResult({
     required this.playlist,
+    required this.liveCategoryCount,
     required this.liveChannelCount,
   });
 }
 
-class PlaylistService {
-  const PlaylistService({this.settingsService = const SettingsService()});
+class PlaylistLoadProgress {
+  final String status;
+  final double value;
 
-  final SettingsService settingsService;
+  const PlaylistLoadProgress({
+    required this.status,
+    required this.value,
+  });
+}
+
+class PlaylistService {
+  PlaylistService({
+    PlaylistBuilderService? builderService,
+    PlaylistRepository? repository,
+  }) : _builderService = builderService ?? PlaylistBuilderService(),
+       _repository = repository ?? PlaylistRepository();
+
+  final PlaylistBuilderService _builderService;
+  final PlaylistRepository _repository;
 
   Future<PlaylistLoadResult> createAndSavePlaylist(
     PlaylistLoadRequest request, {
+    void Function(PlaylistLoadProgress progress)? onProgress,
     void Function(String status)? onStatusChanged,
   }) async {
-    final parser = XtreamParser(
-      server: request.server,
-      username: request.username,
-      password: request.password,
+    final playlist = await _builderService.build(
+      PlaylistBuilderRequest(
+        name: request.name,
+        server: request.server,
+        username: request.username,
+        password: request.password,
+      ),
+      onProgress: (progress) {
+        onStatusChanged?.call(progress.message);
+        onProgress?.call(
+          PlaylistLoadProgress(status: progress.message, value: progress.value),
+        );
+      },
     );
 
-    onStatusChanged?.call('Testing connection...');
-    await _validateConnection(request);
-
-    onStatusChanged?.call('Connection OK. Saving playlist...');
-    final playlist = await _savePlaylist(request);
-
-    onStatusChanged?.call('Loading Live TV categories...');
-    final liveCategories = await parser.getLiveCategories();
-    await _saveLiveCategories(liveCategories);
-
-    onStatusChanged?.call('Loading Live TV channels...');
-    final liveChannels = await parser.getLiveChannels();
-    await _saveLiveChannels(liveChannels);
-
-    onStatusChanged?.call('Calculating channel counts...');
-    await _updateCategoryChannelCounts(
-      liveCategories: liveCategories,
-      liveChannels: liveChannels,
-    );
-
+    await _repository.savePlaylist(playlist, setAsActive: true);
     onStatusChanged?.call('Playlist successfully loaded!');
+    onProgress?.call(
+      const PlaylistLoadProgress(
+        status: 'Playlist successfully loaded!',
+        value: 1,
+      ),
+    );
 
     return PlaylistLoadResult(
       playlist: playlist,
-      liveChannelCount: liveChannels.length,
+      liveCategoryCount: playlist.liveCategories.length,
+      liveChannelCount: playlist.liveChannels.length,
     );
-  }
-
-  Future<void> _validateConnection(PlaylistLoadRequest request) async {
-    final m3uUrl =
-        '${request.server}/get.php?username=${request.username}&password=${request.password}&type=m3u_plus';
-    final response = await Dio().get(m3uUrl);
-
-    if (response.statusCode != 200 || response.data.toString().length < 500) {
-      throw Exception('Invalid playlist from server');
-    }
-  }
-
-  Future<Playlist> _savePlaylist(PlaylistLoadRequest request) async {
-    final playlist = Playlist(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      name: request.name.isNotEmpty ? request.name : 'My Playlist',
-      server: request.server,
-      username: request.username,
-      password: request.password,
-    );
-
-    final playlistBox = Hive.box<Playlist>('playlists');
-    await playlistBox.put(playlist.id, playlist);
-    settingsService.setCurrentPlaylist(playlist);
-    return playlist;
-  }
-
-  Future<void> _saveLiveCategories(List<LiveTvCategory> categories) async {
-    final liveCatBox = Hive.box<LiveTvCategory>('live_categories');
-    await liveCatBox.clear();
-    for (final category in categories) {
-      await liveCatBox.put(category.id, category);
-    }
-  }
-
-  Future<void> _saveLiveChannels(List<LiveTvChannel> channels) async {
-    final liveChanBox = Hive.box<LiveTvChannel>('live_channels');
-    await liveChanBox.clear();
-    for (final channel in channels) {
-      await liveChanBox.put(channel.id, channel);
-    }
-  }
-
-  Future<void> _updateCategoryChannelCounts({
-    required List<LiveTvCategory> liveCategories,
-    required List<LiveTvChannel> liveChannels,
-  }) async {
-    final countMap = <String, int>{};
-    for (final channel in liveChannels) {
-      countMap[channel.categoryId] = (countMap[channel.categoryId] ?? 0) + 1;
-    }
-
-    for (final category in liveCategories) {
-      category.channelCount = countMap[category.id] ?? 0;
-      await category.save();
-    }
   }
 }

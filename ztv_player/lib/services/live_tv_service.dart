@@ -6,6 +6,8 @@ import 'package:ztv_player/models/live_tv_channel.dart';
 class LiveTvService {
   const LiveTvService();
 
+  static const _hiddenPrefixes = ['❱》'];
+
   ValueListenable<Box<LiveTvChannel>> listenable() {
     return Hive.box<LiveTvChannel>('live_channels').listenable();
   }
@@ -16,12 +18,17 @@ class LiveTvService {
             .where(
               (channel) =>
                   channel.categoryId == categoryId &&
-                  !channel.name.trimLeft().startsWith('?�'),
+                  !_shouldHideChannel(channel.name),
             )
             .toList()
           ..sort((a, b) => (a.num ?? 0).compareTo(b.num ?? 0));
 
     return channels;
+  }
+
+  bool _shouldHideChannel(String name) {
+    final normalizedName = name.trimLeft();
+    return _hiddenPrefixes.any(normalizedName.startsWith);
   }
 
   List<LiveTvChannel> getVisibleChannels({

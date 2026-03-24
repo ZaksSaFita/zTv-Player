@@ -1,7 +1,6 @@
+import 'package:better_player_plus/better_player_plus.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:media_kit/media_kit.dart';
-import 'package:media_kit_video/media_kit_video.dart';
 
 class AppVideoPlayer extends StatefulWidget {
   const AppVideoPlayer({
@@ -18,8 +17,7 @@ class AppVideoPlayer extends StatefulWidget {
 }
 
 class _AppVideoPlayerState extends State<AppVideoPlayer> {
-  Player? _player;
-  VideoController? _controller;
+  BetterPlayerController? _controller;
   String? _errorMessage;
 
   @override
@@ -44,43 +42,106 @@ class _AppVideoPlayerState extends State<AppVideoPlayer> {
   }
 
   Future<void> _initializePlayer() async {
-    final streamUrl = widget.streamUrl;
+    final streamUrl = widget.streamUrl?.trim();
     if (streamUrl == null || streamUrl.isEmpty) {
       setState(() => _errorMessage = 'Playable stream URL is missing.');
       return;
     }
 
     try {
-      final player = Player();
-      final controller = VideoController(player);
+      debugPrint('BetterPlayer opening: $streamUrl');
 
-      await player.open(Media(streamUrl));
+      final configuration = BetterPlayerConfiguration(
+        autoPlay: true,
+        looping: false,
+        allowedScreenSleep: false,
+        handleLifecycle: true,
+        fit: BoxFit.cover,
+        aspectRatio: 16 / 9,
+        placeholderOnTop: false,
+        controlsConfiguration: const BetterPlayerControlsConfiguration(
+          enableQualities: false,
+          enableSubtitles: false,
+          enableAudioTracks: false,
+          enableOverflowMenu: false,
+          enableSkips: false,
+          enablePlaybackSpeed: false,
+          controlBarColor: Colors.black54,
+          iconsColor: Colors.white,
+          progressBarPlayedColor: Colors.orange,
+          progressBarHandleColor: Colors.orange,
+          progressBarBufferedColor: Colors.white38,
+          progressBarBackgroundColor: Colors.white12,
+        ),
+      );
+
+      final dataSource = BetterPlayerDataSource(
+        BetterPlayerDataSourceType.network,
+        streamUrl,
+        liveStream: true,
+        videoFormat: _detectFormat(streamUrl),
+        notificationConfiguration: const BetterPlayerNotificationConfiguration(
+          showNotification: false,
+        ),
+      );
+
+      final controller = BetterPlayerController(configuration);
+      controller.addEventsListener(_handlePlayerEvent);
+      await controller.setupDataSource(dataSource);
 
       if (!mounted) {
-        await player.dispose();
+        controller.dispose(forceDispose: true);
         return;
       }
 
       setState(() {
         _errorMessage = null;
-        _player = player;
         _controller = controller;
       });
-    } catch (_) {
+    } catch (error, stackTrace) {
+      debugPrint('BetterPlayer failed for: $streamUrl');
+      debugPrint('BetterPlayer error: $error');
+      debugPrintStack(stackTrace: stackTrace);
       if (!mounted) {
         return;
       }
       setState(() {
-        _errorMessage = 'Stream could not be loaded.';
-        _player = null;
+        _errorMessage = 'Stream could not be loaded.\n$error';
         _controller = null;
       });
     }
   }
 
+  void _handlePlayerEvent(BetterPlayerEvent event) {
+    if (!mounted) {
+      return;
+    }
+
+    if (event.betterPlayerEventType == BetterPlayerEventType.exception) {
+      final message = event.parameters?['exception']?.toString() ??
+          'Unknown playback error.';
+      debugPrint('BetterPlayer exception: $message');
+      setState(() => _errorMessage = message);
+    }
+  }
+
+  BetterPlayerVideoFormat? _detectFormat(String url) {
+    final lower = url.toLowerCase();
+    if (lower.contains('.m3u8')) {
+      return BetterPlayerVideoFormat.hls;
+    }
+    if (lower.contains('.mpd')) {
+      return BetterPlayerVideoFormat.dash;
+    }
+    return null;
+  }
+
   void _disposeController() {
-    _player?.dispose();
-    _player = null;
+    final controller = _controller;
+    if (controller != null) {
+      controller.removeEventsListener(_handlePlayerEvent);
+      controller.dispose(forceDispose: true);
+    }
     _controller = null;
   }
 
@@ -90,33 +151,18 @@ class _AppVideoPlayerState extends State<AppVideoPlayer> {
       aspectRatio: 16 / 9,
       child: DecoratedBox(
         decoration: const BoxDecoration(color: Color(0xFF17171F)),
-        child: _controller == null || _player == null
+        child: _controller == null
             ? _PlayerFallback(
                 placeholderImageUrl: widget.placeholderImageUrl,
                 errorMessage: _errorMessage,
               )
-            : MaterialVideoControlsTheme(
-                normal: const MaterialVideoControlsThemeData(
-                  seekBarMargin: EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  buttonBarButtonSize: 24,
-                  topButtonBarMargin: EdgeInsets.zero,
-                ),
-                fullscreen: const MaterialVideoControlsThemeData(
-                  seekBarMargin: EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  buttonBarButtonSize: 24,
-                ),
-                child: Video(
-                  controller: _controller!,
-                  controls: MaterialVideoControls,
-                  fill: Colors.black,
-                  fit: BoxFit.cover,
-                ),
+            : Stack(
+                fit: StackFit.expand,
+                children: [
+                  BetterPlayer(controller: _controller!),
+                  if (_errorMessage != null)
+                    _ErrorSurface(message: _errorMessage!),
+                ],
               ),
       ),
     );
@@ -156,8 +202,7 @@ class _PlayerFallback extends StatelessWidget {
               size: 68,
             ),
           ),
-          if (errorMessage != null)
-            _ErrorSurface(message: errorMessage!),
+          if (errorMessage != null) _ErrorSurface(message: errorMessage!),
         ],
       );
     }
@@ -166,8 +211,7 @@ class _PlayerFallback extends StatelessWidget {
       fit: StackFit.expand,
       children: [
         const _FallbackSurface(showIcon: true),
-        if (errorMessage != null)
-          _ErrorSurface(message: errorMessage!),
+        if (errorMessage != null) _ErrorSurface(message: errorMessage!),
       ],
     );
   }
