@@ -16,7 +16,7 @@ import 'package:ztv_player/screens/create_playlist_screen.dart';
 import 'package:ztv_player/screens/layout_screen/main_screen.dart';
 import 'package:ztv_player/storage/playlist_repository.dart';
 
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
 
   FlutterError.onError = (details) {
@@ -26,36 +26,6 @@ void main() async {
       details.stack ?? StackTrace.current,
     );
   };
-
-  await Hive.initFlutter();
-
-  Hive.registerAdapter(PlaylistAdapter());
-  Hive.registerAdapter(EpgListingAdapter());
-  Hive.registerAdapter(LiveTvCategoryAdapter());
-  Hive.registerAdapter(LiveTvChannelAdapter());
-  Hive.registerAdapter(VodCategoryAdapter());
-  Hive.registerAdapter(VodMovieAdapter());
-  Hive.registerAdapter(SeriesCategoryAdapter());
-  Hive.registerAdapter(SeriesAdapter());
-  Hive.registerAdapter(SeasonAdapter());
-  Hive.registerAdapter(EpisodeAdapter());
-
-  await Hive.openBox<Playlist>('playlists');
-  await Hive.openBox<LiveTvCategory>('live_categories');
-  await Hive.openBox<LiveTvChannel>('live_channels');
-  await Hive.openBox<VodCategory>('vod_categories');
-  await Hive.openBox<VodMovie>('vod_movies');
-  await Hive.openBox<SeriesCategory>('series_categories');
-  await Hive.openBox<Series>('series');
-  await Hive.openBox<Season>('seasons');
-  await Hive.openBox<Episode>('episodes');
-
-  await Hive.openBox('settings');
-  final settings = Hive.box('settings');
-  final savedThemeIndex =
-      settings.get('theme', defaultValue: AppThemeType.dark.index) as int;
-  AppTheme.notifier.value = AppThemeType.values[savedThemeIndex];
-  await PlaylistRepository().initialize();
 
   runApp(const MyApp());
 }
@@ -71,7 +41,7 @@ class MyApp extends StatelessWidget {
         return MaterialApp(
           title: 'zTv - Player',
           theme: AppTheme.getTheme(theme),
-          home: const _StartupGate(),
+          home: const _BootstrapScreen(),
           routes: {'/main': (context) => const MainScreen()},
         );
       },
@@ -79,49 +49,134 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class _StartupGate extends StatefulWidget {
-  const _StartupGate();
+class _BootstrapScreen extends StatefulWidget {
+  const _BootstrapScreen();
 
   @override
-  State<_StartupGate> createState() => _StartupGateState();
+  State<_BootstrapScreen> createState() => _BootstrapScreenState();
 }
 
-class _StartupGateState extends State<_StartupGate> {
-  Object? _error;
+class _BootstrapScreenState extends State<_BootstrapScreen> {
+  late final Future<void> _startupFuture = _initializeApp();
 
   @override
   Widget build(BuildContext context) {
-    if (_error != null) {
-      return _StartupErrorScreen(
-        error: _error!,
-        onOpenSetup: () {
-          setState(() {
-            _error = null;
-          });
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => const CreatePlaylistScreen()),
+    return FutureBuilder<void>(
+      future: _startupFuture,
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return _StartupErrorScreen(
+            error: snapshot.error!,
+            onOpenSetup: () {
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (_) => const CreatePlaylistScreen()),
+              );
+            },
           );
-        },
-      );
-    }
+        }
 
-    try {
-      final hasPlaylists = Hive.box<Playlist>('playlists').isNotEmpty;
-      return hasPlaylists ? const MainScreen() : const MyHomePage();
-    } catch (error) {
-      _error = error;
-      return _StartupErrorScreen(
-        error: error,
-        onOpenSetup: () {
-          setState(() {
-            _error = null;
-          });
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => const CreatePlaylistScreen()),
-          );
-        },
-      );
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const _StartupLoadingScreen();
+        }
+
+        final hasPlaylists = Hive.box<Playlist>('playlists').isNotEmpty;
+        return hasPlaylists ? const MainScreen() : const MyHomePage();
+      },
+    );
+  }
+
+  Future<void> _initializeApp() async {
+    await Hive.initFlutter();
+
+    _registerHiveAdapters();
+
+    await Hive.openBox<Playlist>('playlists');
+    await Hive.openBox<LiveTvCategory>('live_categories');
+    await Hive.openBox<LiveTvChannel>('live_channels');
+    await Hive.openBox<VodCategory>('vod_categories');
+    await Hive.openBox<VodMovie>('vod_movies');
+    await Hive.openBox<SeriesCategory>('series_categories');
+    await Hive.openBox<Series>('series');
+    await Hive.openBox<Season>('seasons');
+    await Hive.openBox<Episode>('episodes');
+    await Hive.openBox('settings');
+
+    final settings = Hive.box('settings');
+    final dynamic themeValue = settings.get(
+      'theme',
+      defaultValue: AppThemeType.dark.index,
+    );
+    final savedThemeIndex = themeValue is int
+        ? themeValue
+        : AppThemeType.dark.index;
+    final safeThemeIndex =
+        savedThemeIndex >= 0 && savedThemeIndex < AppThemeType.values.length
+        ? savedThemeIndex
+        : AppThemeType.dark.index;
+
+    AppTheme.notifier.value = AppThemeType.values[safeThemeIndex];
+    await PlaylistRepository().initialize();
+  }
+
+  void _registerHiveAdapters() {
+    if (!Hive.isAdapterRegistered(0)) {
+      Hive.registerAdapter(PlaylistAdapter());
     }
+    if (!Hive.isAdapterRegistered(10)) {
+      Hive.registerAdapter(EpgListingAdapter());
+    }
+    if (!Hive.isAdapterRegistered(1)) {
+      Hive.registerAdapter(LiveTvCategoryAdapter());
+    }
+    if (!Hive.isAdapterRegistered(2)) {
+      Hive.registerAdapter(LiveTvChannelAdapter());
+    }
+    if (!Hive.isAdapterRegistered(3)) {
+      Hive.registerAdapter(VodCategoryAdapter());
+    }
+    if (!Hive.isAdapterRegistered(4)) {
+      Hive.registerAdapter(VodMovieAdapter());
+    }
+    if (!Hive.isAdapterRegistered(5)) {
+      Hive.registerAdapter(SeriesCategoryAdapter());
+    }
+    if (!Hive.isAdapterRegistered(6)) {
+      Hive.registerAdapter(SeriesAdapter());
+    }
+    if (!Hive.isAdapterRegistered(7)) {
+      Hive.registerAdapter(SeasonAdapter());
+    }
+    if (!Hive.isAdapterRegistered(8)) {
+      Hive.registerAdapter(EpisodeAdapter());
+    }
+  }
+}
+
+class _StartupLoadingScreen extends StatelessWidget {
+  const _StartupLoadingScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      backgroundColor: Colors.black,
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(color: Colors.white),
+            SizedBox(height: 16),
+            Text(
+              'Loading zTv Player...',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -218,10 +273,7 @@ class _MyHomePageState extends State<MyHomePage> {
 }
 
 class _StartupErrorScreen extends StatelessWidget {
-  const _StartupErrorScreen({
-    required this.error,
-    required this.onOpenSetup,
-  });
+  const _StartupErrorScreen({required this.error, required this.onOpenSetup});
 
   final Object error;
   final VoidCallback onOpenSetup;

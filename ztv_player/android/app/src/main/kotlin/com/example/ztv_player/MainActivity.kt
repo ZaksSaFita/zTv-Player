@@ -1,4 +1,4 @@
-package com.example.ztv_player
+package com.zakssafita.ztv_player
 
 import io.flutter.embedding.android.FlutterActivity
 

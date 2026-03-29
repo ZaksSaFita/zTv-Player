@@ -12,6 +12,7 @@ val keystorePropertiesFile = rootProject.file("key.properties")
 if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 }
+
 android {
     namespace = "com.zakssafita.ztv_player"
     compileSdk = flutter.compileSdkVersion
