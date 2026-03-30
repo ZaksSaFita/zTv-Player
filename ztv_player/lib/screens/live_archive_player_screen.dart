@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:better_player_plus/better_player_plus.dart';
 import 'package:ztv_player/models/live_tv_channel.dart';
 import 'package:ztv_player/models/epg_listing.dart';
+import 'package:ztv_player/services/favorites_service.dart';
 import 'package:ztv_player/services/playback_service.dart';
-import 'package:ztv_player/widgets/app_video_player.dart';
+import 'package:ztv_player/widgets/enhanced_video_player.dart';
 import 'package:ztv_player/widgets/media_detail_scaffold.dart';
 
-class LiveArchivePlayerScreen extends StatelessWidget {
+class LiveArchivePlayerScreen extends StatefulWidget {
   const LiveArchivePlayerScreen({
     super.key,
     required this.channel,
@@ -18,32 +20,67 @@ class LiveArchivePlayerScreen extends StatelessWidget {
   final PlaybackService playbackService;
 
   @override
+  State<LiveArchivePlayerScreen> createState() =>
+      _LiveArchivePlayerScreenState();
+}
+
+class _LiveArchivePlayerScreenState extends State<LiveArchivePlayerScreen> {
+  late final ValueNotifier<bool> _isPlayingNotifier;
+  late final ValueNotifier<bool> _isFavoriteNotifier;
+  BetterPlayerController? _playerController;
+  final FavoritesService _favoritesService = const FavoritesService();
+
+  @override
+  void initState() {
+    super.initState();
+    final isFavorite = _favoritesService.isFavorite(
+      FavoriteContentType.liveTv,
+      widget.channel.id,
+    );
+    _isFavoriteNotifier = ValueNotifier(isFavorite);
+    _isPlayingNotifier = ValueNotifier(false);
+  }
+
+  @override
+  void dispose() {
+    _isPlayingNotifier.dispose();
+    _isFavoriteNotifier.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final streamUrl = playbackService.resolveArchiveStreamUrl(
-      channel: channel,
-      listing: listing,
+    final streamUrl = widget.playbackService.resolveArchiveStreamUrl(
+      channel: widget.channel,
+      listing: widget.listing,
     );
 
     return MediaDetailScaffold(
-      title: listing.title.isEmpty ? channel.name : listing.title,
-      player: AppVideoPlayer(
+      title: widget.listing.title.isEmpty
+          ? widget.channel.name
+          : widget.listing.title,
+      player: EnhancedVideoPlayer(
         streamUrl: streamUrl,
-        placeholderImageUrl: channel.logoUrl,
+        placeholderImageUrl: widget.channel.logoUrl,
+        isLiveStream: true,
+        onControllerReady: (controller) => _playerController = controller,
+        onFavoriteToggle: _toggleFavorite,
+        isFavorite: _isFavoriteNotifier.value,
       ),
       content: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _ArchiveInfoCard(channel: channel, listing: listing),
+          _ArchiveInfoCard(channel: widget.channel, listing: widget.listing),
           const SizedBox(height: 16),
-          _ArchiveRow(label: 'Stream ID', value: channel.id),
+          _ArchiveRow(label: 'Stream ID', value: widget.channel.id),
           _ArchiveRow(
             label: 'Time',
             value:
-                '${_formatTime(listing.start)} - ${_formatTime(listing.end)}',
+                '${_formatTime(widget.listing.start)} - ${_formatTime(widget.listing.end)}',
           ),
           _ArchiveRow(
             label: 'Archive',
-            value: listing.hasArchive ? 'Available' : 'Unavailable',
+            value: widget.listing.hasArchive ? 'Available' : 'Unavailable',
           ),
         ],
       ),
@@ -54,6 +91,14 @@ class LiveArchivePlayerScreen extends StatelessWidget {
     final hour = value.hour.toString().padLeft(2, '0');
     final minute = value.minute.toString().padLeft(2, '0');
     return '$hour:$minute';
+  }
+
+  void _toggleFavorite() {
+    final isFavorite = _favoritesService.toggleFavorite(
+      FavoriteContentType.liveTv,
+      widget.channel.id,
+    );
+    _isFavoriteNotifier.value = isFavorite;
   }
 }
 

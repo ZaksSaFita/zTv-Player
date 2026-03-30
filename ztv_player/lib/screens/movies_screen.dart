@@ -52,9 +52,12 @@ class MoviesScreen extends StatelessWidget {
                           final category = categories[index];
                           return AppGridCard(
                             title: category.name,
-                            subtitle: '${category.movieCount ?? 0} movies',
+                            subtitle: viewColumns == 2
+                                ? null
+                                : '${category.movieCount ?? 0} movies',
                             fallbackIcon: Icons.movie_creation_outlined,
                             accentColor: Colors.red,
+                            horizontalLayout: viewColumns == 2,
                             onTap: () => _openCategory(context, category),
                           );
                         },

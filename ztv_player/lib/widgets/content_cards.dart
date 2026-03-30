@@ -30,10 +30,7 @@ class AppListCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 10),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 14,
-        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         leading: _CardVisual(
           imageUrl: imageUrl,
           fallbackIcon: fallbackIcon,
@@ -79,6 +76,7 @@ class AppGridCard extends StatelessWidget {
   final String? imageUrl;
   final IconData fallbackIcon;
   final Color accentColor;
+  final bool horizontalLayout;
   final VoidCallback? onTap;
 
   const AppGridCard({
@@ -88,8 +86,18 @@ class AppGridCard extends StatelessWidget {
     required this.accentColor,
     this.subtitle,
     this.imageUrl,
+    this.horizontalLayout = false,
     this.onTap,
   });
+
+  String _horizontalTitle(String value) {
+    final words = value.trim().split(RegExp(r'\s+')).where((word) => word.isNotEmpty).toList();
+    if (words.length <= 1) {
+      return value;
+    }
+
+    return '${words.first}\n${words.skip(1).join(' ')}';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -101,56 +109,92 @@ class AppGridCard extends StatelessWidget {
           color: Colors.grey[900],
           borderRadius: BorderRadius.circular(16),
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _CardVisual(
-                imageUrl: imageUrl,
-                fallbackIcon: fallbackIcon,
-                accentColor: accentColor,
-                width: 44,
-                height: 44,
-                radius: 12,
-              ),
-              const SizedBox(height: 6),
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  mainAxisSize: MainAxisSize.min,
+        child: horizontalLayout
+            ? Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                child: Row(
                   children: [
-                    Text(
-                      title,
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        height: 1.1,
-                      ),
+                    _CardVisual(
+                      imageUrl: imageUrl,
+                      fallbackIcon: fallbackIcon,
+                      accentColor: accentColor,
+                      width: 48,
+                      height: 48,
+                      radius: 10,
                     ),
-                    if (subtitle != null) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        subtitle!,
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.grey,
-                          fontSize: 11,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          _horizontalTitle(title),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            height: 1.1,
+                          ),
                         ),
                       ),
-                    ],
+                    ),
+                  ],
+                ),
+              )
+            : Padding(
+                padding: const EdgeInsets.all(10),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _CardVisual(
+                      imageUrl: imageUrl,
+                      fallbackIcon: fallbackIcon,
+                      accentColor: accentColor,
+                      width: 44,
+                      height: 44,
+                      radius: 12,
+                    ),
+                    const SizedBox(height: 6),
+                    Expanded(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            title,
+                            textAlign: TextAlign.center,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              height: 1.1,
+                            ),
+                          ),
+                          if (subtitle != null) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              subtitle!,
+                              textAlign: TextAlign.center,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.grey,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),
-            ],
-          ),
-        ),
       ),
     );
   }

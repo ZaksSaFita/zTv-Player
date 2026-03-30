@@ -52,9 +52,12 @@ class SeriesScreen extends StatelessWidget {
                           final category = categories[index];
                           return AppGridCard(
                             title: category.name,
-                            subtitle: '${category.seriesCount ?? 0} series',
+                            subtitle: viewColumns == 2
+                                ? null
+                                : '${category.seriesCount ?? 0} series',
                             fallbackIcon: Icons.tv_outlined,
                             accentColor: Colors.tealAccent,
+                            horizontalLayout: viewColumns == 2,
                             onTap: () => _openCategory(context, category),
                           );
                         },

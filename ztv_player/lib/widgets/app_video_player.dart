@@ -1,4 +1,5 @@
 import 'package:better_player_plus/better_player_plus.dart';
+// ignore: implementation_imports
 import 'package:better_player_plus/src/video_player/video_player.dart'
     show VideoPlayerController;
 import 'package:cached_network_image/cached_network_image.dart';
@@ -6,8 +7,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 const appPlayerControlsHideDuration = Duration(milliseconds: 1400);
-const appPlayerOverlayIconColor = Colors.white;
-const appPlayerOverlayBackgroundColor = Color(0x55000000);
 
 class AppVideoPlayer extends StatefulWidget {
   const AppVideoPlayer({
@@ -22,9 +21,11 @@ class AppVideoPlayer extends StatefulWidget {
     this.idleActionLabel,
     this.onIdleAction,
     this.onPlaylistIndexChanged,
+    this.onControllerReady,
+    this.onIsPlayingChanged,
+    this.onDurationChanged,
+    this.onPositionChanged,
     this.overlay,
-    this.floatingOverlay,
-    this.floatingOverlayBuilder,
     this.enableSkips,
   });
 
@@ -38,10 +39,11 @@ class AppVideoPlayer extends StatefulWidget {
   final String? idleActionLabel;
   final VoidCallback? onIdleAction;
   final ValueChanged<int>? onPlaylistIndexChanged;
+  final ValueChanged<BetterPlayerController>? onControllerReady;
+  final ValueChanged<bool>? onIsPlayingChanged;
+  final ValueChanged<Duration>? onDurationChanged;
+  final ValueChanged<Duration>? onPositionChanged;
   final Widget? overlay;
-  final Widget? floatingOverlay;
-  final Widget Function(BetterPlayerController controller, bool controlsVisible)?
-      floatingOverlayBuilder;
   final bool? enableSkips;
 
   @override
@@ -52,12 +54,18 @@ class _AppVideoPlayerState extends State<AppVideoPlayer> {
   BetterPlayerController? _controller;
   String? _errorMessage;
   int _initializationGeneration = 0;
-  bool _controlsVisible = true;
+  Orientation? _lastOrientation;
+  bool _enteredFullscreenFromRotation = false;
+  BetterPlayerController? _lastFullscreenController;
+  BetterPlayerController? _lastReportedController;
+  VideoPlayerController? _videoPlayerController;
+  bool? _lastIsPlaying;
   final GlobalKey<BetterPlayerPlaylistState> _playlistKey =
       GlobalKey<BetterPlayerPlaylistState>();
 
   bool get _usesPlaylist =>
-      widget.playlistDataSources != null && widget.playlistDataSources!.isNotEmpty;
+      widget.playlistDataSources != null &&
+      widget.playlistDataSources!.isNotEmpty;
 
   @override
   void initState() {
@@ -165,6 +173,7 @@ class _AppVideoPlayerState extends State<AppVideoPlayer> {
   }
 
   void _disposeController() {
+    _detachVideoController();
     final controller = _controller;
     if (controller != null) {
       controller.pause();
@@ -178,13 +187,22 @@ class _AppVideoPlayerState extends State<AppVideoPlayer> {
     final playlistDataSources = widget.playlistDataSources;
     final hasPlaylist = _usesPlaylist && widget.autoInitialize;
     final playlistSignature = hasPlaylist
-        ? playlistDataSources!
-            .map((dataSource) => dataSource.url)
-            .join('|')
+        ? playlistDataSources!.map((dataSource) => dataSource.url).join('|')
         : '';
     final activeController = hasPlaylist
-        ? _playlistKey.currentState?.betterPlayerPlaylistController?.betterPlayerController
+        ? _playlistKey
+              .currentState
+              ?.betterPlayerPlaylistController
+              ?.betterPlayerController
         : _controller;
+
+    if (activeController != null) {
+      _reportController(activeController);
+      _syncFullscreenWithOrientation(
+        MediaQuery.of(context).orientation,
+        activeController,
+      );
+    }
 
     final playerChild = hasPlaylist
         ? KeyedSubtree(
@@ -195,10 +213,11 @@ class _AppVideoPlayerState extends State<AppVideoPlayer> {
               key: _playlistKey,
               betterPlayerDataSourceList: playlistDataSources!,
               betterPlayerConfiguration: _buildPlayerConfiguration(),
-              betterPlayerPlaylistConfiguration: BetterPlayerPlaylistConfiguration(
-                initialStartIndex: widget.initialPlaylistIndex,
-                loopVideos: false,
-              ),
+              betterPlayerPlaylistConfiguration:
+                  BetterPlayerPlaylistConfiguration(
+                    initialStartIndex: widget.initialPlaylistIndex,
+                    loopVideos: false,
+                  ),
             ),
           )
         : _controller == null
@@ -220,45 +239,113 @@ class _AppVideoPlayerState extends State<AppVideoPlayer> {
           )
         : Stack(
             fit: StackFit.expand,
-            children: [
-              BetterPlayer(controller: _controller!),
-              if (widget.isLiveStream)
-                _LiveCenterPlayOverlay(
-                  controller: _controller!,
-                  controlsVisible: _controlsVisible,
-                ),
-            ],
+            children: [BetterPlayer(controller: _controller!)],
           );
 
     return AspectRatio(
       aspectRatio: 16 / 9,
       child: DecoratedBox(
         decoration: const BoxDecoration(color: Color(0xFF17171F)),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            playerChild,
-            if (widget.floatingOverlayBuilder != null && activeController != null)
-              widget.floatingOverlayBuilder!(activeController, _controlsVisible),
-            if (widget.floatingOverlay != null) widget.floatingOverlay!,
-          ],
-        ),
+        child: playerChild,
       ),
     );
+  }
+
+  void _syncFullscreenWithOrientation(
+    Orientation orientation,
+    BetterPlayerController controller,
+  ) {
+    final controllerChanged = !identical(_lastFullscreenController, controller);
+    if (_lastOrientation == orientation && !controllerChanged) {
+      return;
+    }
+    _lastOrientation = orientation;
+    _lastFullscreenController = controller;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+
+      if (orientation == Orientation.landscape) {
+        if (!controller.isFullScreen) {
+          controller.enterFullScreen();
+          _enteredFullscreenFromRotation = true;
+        }
+        return;
+      }
+
+      if (_enteredFullscreenFromRotation && controller.isFullScreen) {
+        controller.exitFullScreen();
+      }
+      _enteredFullscreenFromRotation = false;
+    });
+  }
+
+  void _reportController(BetterPlayerController controller) {
+    final controllerChanged = !identical(_lastReportedController, controller);
+    if (!controllerChanged) {
+      return;
+    }
+
+    _lastReportedController = controller;
+    widget.onControllerReady?.call(controller);
+    _attachVideoController(controller.videoPlayerController);
+  }
+
+  void _attachVideoController(VideoPlayerController? controller) {
+    if (identical(_videoPlayerController, controller)) {
+      return;
+    }
+    _detachVideoController();
+    _videoPlayerController = controller;
+    _videoPlayerController?.addListener(_handleVideoControllerChanged);
+    _videoPlayerController?.addListener(_handleVideoPositionChanged);
+    _handleVideoControllerChanged();
+    _handleVideoPositionChanged();
+  }
+
+  void _detachVideoController() {
+    _videoPlayerController?.removeListener(_handleVideoControllerChanged);
+    _videoPlayerController?.removeListener(_handleVideoPositionChanged);
+    _videoPlayerController = null;
+  }
+
+  void _handleVideoControllerChanged() {
+    final isPlaying = _videoPlayerController?.value.isPlaying ?? false;
+    if (_lastIsPlaying == isPlaying) {
+      return;
+    }
+    _lastIsPlaying = isPlaying;
+    widget.onIsPlayingChanged?.call(isPlaying);
+  }
+
+  void _handleVideoPositionChanged() {
+    final duration = _videoPlayerController?.value.duration;
+    if (duration != null) {
+      widget.onDurationChanged?.call(duration);
+    }
+    final position = _videoPlayerController?.value.position;
+    if (position != null) {
+      widget.onPositionChanged?.call(position);
+    }
   }
 
   BetterPlayerConfiguration _buildPlayerConfiguration() {
     return BetterPlayerConfiguration(
       autoPlay: true,
       looping: false,
+      fullScreenByDefault: false,
       allowedScreenSleep: false,
       handleLifecycle: true,
       autoDispose: false,
+      deviceOrientationsOnFullScreen: const [
+        DeviceOrientation.landscapeLeft,
+        DeviceOrientation.landscapeRight,
+      ],
       autoDetectFullscreenDeviceOrientation: true,
       autoDetectFullscreenAspectRatio: true,
-      deviceOrientationsAfterFullScreen: const [
-        DeviceOrientation.portraitUp,
-      ],
+      deviceOrientationsAfterFullScreen: const [DeviceOrientation.portraitUp],
       systemOverlaysAfterFullScreen: SystemUiOverlay.values,
       fit: BoxFit.cover,
       aspectRatio: 16 / 9,
@@ -276,23 +363,22 @@ class _AppVideoPlayerState extends State<AppVideoPlayer> {
       ),
       eventListener: _handlePlayerEvent,
       controlsConfiguration: BetterPlayerControlsConfiguration(
-        enableQualities: true,
-        enableSubtitles: true,
-        enableAudioTracks: true,
-        enableOverflowMenu: true,
-        enableSkips: widget.enableSkips ?? !widget.isLiveStream,
-        enablePlaybackSpeed: !widget.isLiveStream,
-        enableRetry: true,
+        enableQualities: false,
+        enableSubtitles: false,
+        enableAudioTracks: false,
+        enableOverflowMenu: false,
+        enableSkips: false,
+        enablePlaybackSpeed: false,
+        enableRetry: false,
         enablePip: false,
-        showControlsOnInitialize: true,
-        controlsHideTime: appPlayerControlsHideDuration,
-        controlBarColor:
-            widget.isLiveStream ? Colors.transparent : Colors.black54,
-        iconsColor: Colors.white,
-        progressBarPlayedColor: Colors.orange,
-        progressBarHandleColor: Colors.orange,
-        progressBarBufferedColor: Colors.white38,
-        progressBarBackgroundColor: Colors.white12,
+        showControlsOnInitialize: false,
+        controlsHideTime: const Duration(milliseconds: 1),
+        controlBarColor: Colors.transparent,
+        iconsColor: Colors.transparent,
+        progressBarPlayedColor: Colors.transparent,
+        progressBarHandleColor: Colors.transparent,
+        progressBarBufferedColor: Colors.transparent,
+        progressBarBackgroundColor: Colors.transparent,
         loadingWidget: const Center(
           child: SizedBox(
             width: 42,
@@ -320,19 +406,14 @@ class _AppVideoPlayerState extends State<AppVideoPlayer> {
       return;
     }
 
-    if (event.betterPlayerEventType == BetterPlayerEventType.controlsVisible) {
-      if (_controlsVisible) {
-        return;
-      }
-      setState(() => _controlsVisible = true);
+    if (event.betterPlayerEventType == BetterPlayerEventType.openFullscreen) {
+      _enteredFullscreenFromRotation =
+          MediaQuery.of(context).orientation == Orientation.landscape;
       return;
     }
 
-    if (event.betterPlayerEventType == BetterPlayerEventType.controlsHiddenStart) {
-      if (!_controlsVisible) {
-        return;
-      }
-      setState(() => _controlsVisible = false);
+    if (event.betterPlayerEventType == BetterPlayerEventType.hideFullscreen) {
+      _enteredFullscreenFromRotation = false;
       return;
     }
 
@@ -356,109 +437,6 @@ class _AppVideoPlayerState extends State<AppVideoPlayer> {
         widget.onPlaylistIndexChanged!(index);
       }
     });
-  }
-}
-
-class _LiveCenterPlayOverlay extends StatefulWidget {
-  const _LiveCenterPlayOverlay({
-    required this.controller,
-    required this.controlsVisible,
-  });
-
-  final BetterPlayerController controller;
-  final bool controlsVisible;
-
-  @override
-  State<_LiveCenterPlayOverlay> createState() => _LiveCenterPlayOverlayState();
-}
-
-class _LiveCenterPlayOverlayState extends State<_LiveCenterPlayOverlay> {
-  VideoPlayerController? _videoPlayerController;
-
-  @override
-  void initState() {
-    super.initState();
-    _attachController();
-  }
-
-  @override
-  void didUpdateWidget(covariant _LiveCenterPlayOverlay oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.controller != widget.controller) {
-      _videoPlayerController?.removeListener(_handleVideoChanged);
-      _attachController();
-    }
-  }
-
-  void _attachController() {
-    _videoPlayerController?.removeListener(_handleVideoChanged);
-    _videoPlayerController = widget.controller.videoPlayerController;
-    _videoPlayerController?.addListener(_handleVideoChanged);
-  }
-
-  @override
-  void dispose() {
-    _videoPlayerController?.removeListener(_handleVideoChanged);
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final videoValue = _videoPlayerController?.value;
-    if (videoValue == null || !videoValue.initialized) {
-      return const SizedBox.shrink();
-    }
-
-    final isPlaying = videoValue.isPlaying;
-    final shouldShow = !isPlaying || widget.controlsVisible;
-    return IgnorePointer(
-      ignoring: !shouldShow,
-      child: AnimatedOpacity(
-        opacity: shouldShow ? 1 : 0,
-        duration: appPlayerControlsHideDuration,
-        child: Center(
-          child: Material(
-            color: appPlayerOverlayBackgroundColor,
-            shape: const CircleBorder(),
-            clipBehavior: Clip.antiAlias,
-            child: InkWell(
-              customBorder: const CircleBorder(),
-              onTap: _togglePlayback,
-              child: SizedBox(
-                width: 68,
-                height: 68,
-                child: Center(
-                  child: Icon(
-                    isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                    size: 38,
-                    color: appPlayerOverlayIconColor,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _handleVideoChanged() {
-    if (mounted) {
-      setState(() {});
-    }
-  }
-
-  void _togglePlayback() {
-    final videoController = _videoPlayerController;
-    if (videoController == null) {
-      return;
-    }
-
-    if (videoController.value.isPlaying) {
-      widget.controller.pause();
-    } else {
-      widget.controller.play();
-    }
   }
 }
 

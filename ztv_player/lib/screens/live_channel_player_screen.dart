@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:better_player_plus/better_player_plus.dart';
 import 'package:ztv_player/models/live_tv_channel.dart';
 import 'package:ztv_player/models/epg_listing.dart';
 import 'package:ztv_player/services/epg_service.dart';
+import 'package:ztv_player/services/favorites_service.dart';
 import 'package:ztv_player/services/playback_service.dart';
-import 'package:ztv_player/widgets/app_video_player.dart';
+import 'package:ztv_player/widgets/enhanced_video_player.dart';
 import 'package:ztv_player/widgets/media_detail_scaffold.dart';
 
 class LiveChannelPlayerScreen extends StatefulWidget {
@@ -25,6 +27,28 @@ class LiveChannelPlayerScreen extends StatefulWidget {
 
 class _LiveChannelPlayerScreenState extends State<LiveChannelPlayerScreen> {
   EpgListing? _selectedArchiveListing;
+  late final ValueNotifier<bool> _isPlayingNotifier;
+  late final ValueNotifier<bool> _isFavoriteNotifier;
+  BetterPlayerController? _playerController;
+  final FavoritesService _favoritesService = const FavoritesService();
+
+  @override
+  void initState() {
+    super.initState();
+    final isFavorite = _favoritesService.isFavorite(
+      FavoriteContentType.liveTv,
+      widget.channel.id,
+    );
+    _isFavoriteNotifier = ValueNotifier(isFavorite);
+    _isPlayingNotifier = ValueNotifier(false);
+  }
+
+  @override
+  void dispose() {
+    _isPlayingNotifier.dispose();
+    _isFavoriteNotifier.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -42,9 +66,13 @@ class _LiveChannelPlayerScreenState extends State<LiveChannelPlayerScreen> {
 
     return MediaDetailScaffold(
       title: title,
-      player: AppVideoPlayer(
+      player: EnhancedVideoPlayer(
         streamUrl: streamUrl,
         placeholderImageUrl: widget.channel.logoUrl,
+        isLiveStream: true,
+        onControllerReady: (controller) => _playerController = controller,
+        onFavoriteToggle: _toggleFavorite,
+        isFavorite: _isFavoriteNotifier.value,
       ),
       content: _LiveChannelDetailContent(
         channel: widget.channel,
@@ -59,6 +87,14 @@ class _LiveChannelPlayerScreenState extends State<LiveChannelPlayerScreen> {
         },
       ),
     );
+  }
+
+  void _toggleFavorite() {
+    final isFavorite = _favoritesService.toggleFavorite(
+      FavoriteContentType.liveTv,
+      widget.channel.id,
+    );
+    _isFavoriteNotifier.value = isFavorite;
   }
 }
 
@@ -102,10 +138,7 @@ class _LiveChannelDetailContent extends StatelessWidget {
               tabs: const [
                 Tab(text: 'Live'),
                 Tab(
-                  child: Text(
-                    'Archive',
-                    style: TextStyle(color: Colors.grey),
-                  ),
+                  child: Text('Archive', style: TextStyle(color: Colors.grey)),
                 ),
               ],
             ),

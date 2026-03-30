@@ -212,7 +212,7 @@ class AppView {
                 ? (resolvedColumns == 2 ? 0.82 : 0.74)
                 : (resolvedColumns == 2 ? 0.72 : 0.62)
           : denseTextGrid
-          ? (resolvedColumns == 2 ? 1.08 : 0.82)
+          ? (resolvedColumns == 2 ? 2.45 : 0.82)
           : (resolvedColumns == 2 ? 1.2 : 0.96),
     );
   }

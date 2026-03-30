@@ -52,9 +52,12 @@ class LiveTvScreen extends StatelessWidget {
                           final category = categories[index];
                           return AppGridCard(
                             title: category.name,
-                            subtitle: '${category.channelCount} channels',
+                            subtitle: viewColumns == 2
+                                ? null
+                                : '${category.channelCount} channels',
                             fallbackIcon: Icons.live_tv_rounded,
                             accentColor: Colors.blue,
+                            horizontalLayout: viewColumns == 2,
                             onTap: () => _openCategory(context, category),
                           );
                         },

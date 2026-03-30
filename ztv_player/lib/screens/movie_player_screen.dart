@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:better_player_plus/better_player_plus.dart';
 import 'package:ztv_player/models/vod_details.dart';
 import 'package:ztv_player/models/vod_movie.dart';
+import 'package:ztv_player/services/favorites_service.dart';
 import 'package:ztv_player/services/movie_service.dart';
 import 'package:ztv_player/services/playback_service.dart';
-import 'package:ztv_player/widgets/app_video_player.dart';
+import 'package:ztv_player/widgets/enhanced_video_player.dart';
 import 'package:ztv_player/widgets/media_detail_scaffold.dart';
 
 class MoviePlayerScreen extends StatefulWidget {
@@ -25,12 +27,29 @@ class MoviePlayerScreen extends StatefulWidget {
 
 class _MoviePlayerScreenState extends State<MoviePlayerScreen> {
   bool _hasStartedPlayback = false;
+  late final ValueNotifier<bool> _isPlayingNotifier;
+  late final ValueNotifier<bool> _isFavoriteNotifier;
+  BetterPlayerController? _playerController;
   late final Future<VodDetails> _detailsFuture;
+  final FavoritesService _favoritesService = const FavoritesService();
 
   @override
   void initState() {
     super.initState();
+    final isFavorite = _favoritesService.isFavorite(
+      FavoriteContentType.movie,
+      widget.movie.id,
+    );
+    _isFavoriteNotifier = ValueNotifier(isFavorite);
+    _isPlayingNotifier = ValueNotifier(false);
     _detailsFuture = widget.movieService.getMovieDetails(widget.movie.id);
+  }
+
+  @override
+  void dispose() {
+    _isPlayingNotifier.dispose();
+    _isFavoriteNotifier.dispose();
+    super.dispose();
   }
 
   @override
@@ -42,16 +61,19 @@ class _MoviePlayerScreenState extends State<MoviePlayerScreen> {
 
     return MediaDetailScaffold(
       title: widget.movie.name,
-      player: AppVideoPlayer(
+      player: EnhancedVideoPlayer(
         streamUrl: _hasStartedPlayback ? streamUrl : null,
         placeholderImageUrl: widget.movie.logoUrl,
         autoInitialize: _hasStartedPlayback,
         isLiveStream: false,
+        onControllerReady: (controller) => _playerController = controller,
         idleTitle: 'Tap play when you want to start this movie.',
         idleActionLabel: 'Play movie',
         onIdleAction: () {
           setState(() => _hasStartedPlayback = true);
         },
+        onFavoriteToggle: _toggleFavorite,
+        isFavorite: _isFavoriteNotifier.value,
       ),
       content: FutureBuilder<VodDetails>(
         future: _detailsFuture,
@@ -73,6 +95,32 @@ class _MoviePlayerScreenState extends State<MoviePlayerScreen> {
         },
       ),
     );
+  }
+
+  void _togglePlayback() {
+    if (!_hasStartedPlayback) {
+      setState(() => _hasStartedPlayback = true);
+      return;
+    }
+
+    final controller = _playerController;
+    if (controller == null) {
+      return;
+    }
+
+    if (_isPlayingNotifier.value) {
+      controller.pause();
+    } else {
+      controller.play();
+    }
+  }
+
+  void _toggleFavorite() {
+    final isFavorite = _favoritesService.toggleFavorite(
+      FavoriteContentType.movie,
+      widget.movie.id,
+    );
+    _isFavoriteNotifier.value = isFavorite;
   }
 }
 

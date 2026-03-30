@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:better_player_plus/better_player_plus.dart';
 import 'package:ztv_player/models/episode.dart';
 import 'package:ztv_player/models/season.dart';
 import 'package:ztv_player/models/series.dart';
 import 'package:ztv_player/models/series_details.dart';
+import 'package:ztv_player/services/favorites_service.dart';
 import 'package:ztv_player/services/playback_service.dart';
 import 'package:ztv_player/services/series_service.dart';
-import 'package:ztv_player/widgets/app_video_player.dart';
+import 'package:ztv_player/widgets/enhanced_video_player.dart';
 import 'package:ztv_player/widgets/media_detail_scaffold.dart';
 
 class SeriesPlayerScreen extends StatefulWidget {
@@ -26,12 +28,29 @@ class SeriesPlayerScreen extends StatefulWidget {
 
 class _SeriesPlayerScreenState extends State<SeriesPlayerScreen> {
   Episode? _selectedEpisode;
+  late final ValueNotifier<bool> _isPlayingNotifier;
+  late final ValueNotifier<bool> _isFavoriteNotifier;
+  BetterPlayerController? _playerController;
   late final Future<SeriesDetails> _detailsFuture;
+  final FavoritesService _favoritesService = const FavoritesService();
 
   @override
   void initState() {
     super.initState();
+    final isFavorite = _favoritesService.isFavorite(
+      FavoriteContentType.series,
+      widget.series.id,
+    );
+    _isFavoriteNotifier = ValueNotifier(isFavorite);
+    _isPlayingNotifier = ValueNotifier(false);
     _detailsFuture = widget.seriesService.getSeriesDetails(widget.series.id);
+  }
+
+  @override
+  void dispose() {
+    _isPlayingNotifier.dispose();
+    _isFavoriteNotifier.dispose();
+    super.dispose();
   }
 
   @override
@@ -40,11 +59,15 @@ class _SeriesPlayerScreenState extends State<SeriesPlayerScreen> {
       future: _detailsFuture,
       builder: (context, snapshot) {
         final details = snapshot.data;
-        final episodes = details == null ? const <Episode>[] : _allEpisodes(details);
+        final episodes = details == null
+            ? const <Episode>[]
+            : _allEpisodes(details);
         final selectedEpisode = _selectedEpisode;
         final selectedIndex = selectedEpisode == null
             ? -1
-            : episodes.indexWhere((episode) => episode.id == selectedEpisode.id);
+            : episodes.indexWhere(
+                (episode) => episode.id == selectedEpisode.id,
+              );
         final streamUrl = _selectedEpisode == null
             ? null
             : widget.playbackService.resolveEpisodeStreamUrl(
@@ -54,31 +77,25 @@ class _SeriesPlayerScreenState extends State<SeriesPlayerScreen> {
 
         return MediaDetailScaffold(
           title: _selectedEpisode?.name ?? widget.series.name,
-          player: AppVideoPlayer(
+          player: EnhancedVideoPlayer(
             streamUrl: streamUrl,
             placeholderImageUrl:
                 _selectedEpisode?.logoUrl ?? widget.series.logoUrl,
             autoInitialize: selectedIndex >= 0,
             isLiveStream: false,
             enableSkips: false,
+            onControllerReady: (controller) => _playerController = controller,
+            onPrevious: selectedIndex > 0
+                ? () => _selectEpisode(episodes[selectedIndex - 1])
+                : null,
+            onNext: selectedIndex >= 0 && selectedIndex < episodes.length - 1
+                ? () => _selectEpisode(episodes[selectedIndex + 1])
+                : null,
+            onFavoriteToggle: _toggleFavorite,
+            isFavorite: _isFavoriteNotifier.value,
             idleTitle: _selectedEpisode == null
                 ? 'Select an episode to start playback.'
                 : null,
-            floatingOverlayBuilder: selectedIndex < 0
-                ? null
-                : (_, controlsVisible) => _EpisodePlayerOverlay(
-                    key: ValueKey(_selectedEpisode?.id),
-                    controlsVisible: controlsVisible,
-                    hasPrevious: selectedIndex > 0,
-                    hasNext:
-                        selectedIndex >= 0 && selectedIndex < episodes.length - 1,
-                    onPrevious: selectedIndex > 0
-                        ? () => _selectEpisode(episodes[selectedIndex - 1])
-                        : null,
-                    onNext: selectedIndex >= 0 && selectedIndex < episodes.length - 1
-                        ? () => _selectEpisode(episodes[selectedIndex + 1])
-                        : null,
-                  ),
           ),
           content: Builder(
             builder: (context) {
@@ -104,9 +121,7 @@ class _SeriesPlayerScreenState extends State<SeriesPlayerScreen> {
   }
 
   List<Episode> _allEpisodes(SeriesDetails details) {
-    return [
-      for (final season in details.seasons) ...season.episodes,
-    ];
+    return [for (final season in details.seasons) ...season.episodes];
   }
 
   void _selectEpisode(Episode episode) {
@@ -114,6 +129,14 @@ class _SeriesPlayerScreenState extends State<SeriesPlayerScreen> {
       return;
     }
     setState(() => _selectedEpisode = episode);
+  }
+
+  void _toggleFavorite() {
+    final isFavorite = _favoritesService.toggleFavorite(
+      FavoriteContentType.series,
+      widget.series.id,
+    );
+    _isFavoriteNotifier.value = isFavorite;
   }
 }
 
@@ -173,89 +196,6 @@ class _SeriesDetailsContent extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _EpisodePlayerOverlay extends StatelessWidget {
-  const _EpisodePlayerOverlay({
-    super.key,
-    required this.controlsVisible,
-    required this.hasPrevious,
-    required this.hasNext,
-    this.onPrevious,
-    this.onNext,
-  });
-
-  final bool controlsVisible;
-  final bool hasPrevious;
-  final bool hasNext;
-  final VoidCallback? onPrevious;
-  final VoidCallback? onNext;
-
-  @override
-  Widget build(BuildContext context) {
-    return IgnorePointer(
-      ignoring: !controlsVisible,
-      child: AnimatedOpacity(
-        opacity: controlsVisible ? 1 : 0,
-        duration: appPlayerControlsHideDuration,
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: [
-                _EpisodeOverlayButton(
-                  icon: Icons.skip_previous_rounded,
-                  enabled: hasPrevious,
-                  onPressed: hasPrevious ? onPrevious : null,
-                ),
-                const Spacer(),
-                _EpisodeOverlayButton(
-                  icon: Icons.skip_next_rounded,
-                  enabled: hasNext,
-                  onPressed: hasNext ? onNext : null,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _EpisodeOverlayButton extends StatelessWidget {
-  const _EpisodeOverlayButton({
-    required this.icon,
-    required this.enabled,
-    this.onPressed,
-  });
-
-  final IconData icon;
-  final bool enabled;
-  final VoidCallback? onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: enabled
-            ? appPlayerOverlayBackgroundColor
-            : appPlayerOverlayBackgroundColor.withValues(alpha: 0.35),
-        borderRadius: BorderRadius.circular(28),
-      ),
-      child: SizedBox(
-        width: 56,
-        height: 56,
-        child: IconButton(
-          padding: EdgeInsets.zero,
-          onPressed: enabled ? onPressed : null,
-          iconSize: 34,
-          color: enabled ? appPlayerOverlayIconColor : Colors.white38,
-          icon: Icon(icon),
-        ),
       ),
     );
   }

@@ -6,23 +6,21 @@ class MediaDetailScaffold extends StatelessWidget {
     required this.title,
     required this.player,
     required this.content,
+    this.playerActions,
   });
 
   final String title;
   final Widget player;
   final Widget content;
+  final Widget? playerActions;
 
   @override
   Widget build(BuildContext context) {
-    final isLandscape =
-        MediaQuery.of(context).orientation == Orientation.landscape;
-
-    if (isLandscape) {
-      return Scaffold(
-        backgroundColor: Colors.black,
-        body: SizedBox.expand(child: player),
-      );
-    }
+    final children = <Widget>[
+      player,
+      ...?(playerActions == null ? null : <Widget>[playerActions!]),
+      Expanded(child: content),
+    ];
 
     return Scaffold(
       appBar: AppBar(
@@ -36,12 +34,7 @@ class MediaDetailScaffold extends StatelessWidget {
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
         ),
       ),
-      body: Column(
-        children: [
-          player,
-          Expanded(child: content),
-        ],
-      ),
+      body: Column(children: children),
     );
   }
 }
