@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
 import 'package:better_player_plus/better_player_plus.dart';
+import 'package:flutter/material.dart';
+import 'package:ztv_player/helpers/media_format.dart';
 import 'package:ztv_player/models/episode.dart';
 import 'package:ztv_player/models/season.dart';
 import 'package:ztv_player/models/series.dart';
@@ -8,6 +9,7 @@ import 'package:ztv_player/services/favorites_service.dart';
 import 'package:ztv_player/services/playback_service.dart';
 import 'package:ztv_player/services/series_service.dart';
 import 'package:ztv_player/widgets/enhanced_video_player.dart';
+import 'package:ztv_player/widgets/labeled_value_row.dart';
 import 'package:ztv_player/widgets/media_detail_scaffold.dart';
 
 class SeriesPlayerScreen extends StatefulWidget {
@@ -65,9 +67,7 @@ class _SeriesPlayerScreenState extends State<SeriesPlayerScreen> {
         final selectedEpisode = _selectedEpisode;
         final selectedIndex = selectedEpisode == null
             ? -1
-            : episodes.indexWhere(
-                (episode) => episode.id == selectedEpisode.id,
-              );
+            : episodes.indexWhere((episode) => episode.id == selectedEpisode.id);
         final streamUrl = _selectedEpisode == null
             ? null
             : widget.playbackService.resolveEpisodeStreamUrl(
@@ -272,14 +272,14 @@ class _SeasonEpisodesPanel extends StatelessWidget {
       parts.add(episode.duration!);
     }
     if (episode.rating != null && episode.rating!.isNotEmpty) {
-      parts.add('Rating ${_formatRating(episode.rating)}');
+      parts.add('Rating ${formatRating(episode.rating)}');
     }
     if (parts.isEmpty) {
       return null;
     }
 
     return Text(
-      parts.join(' • '),
+      parts.join(' | '),
       style: const TextStyle(color: Colors.white54),
     );
   }
@@ -294,7 +294,7 @@ class _SeriesInfoCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final lines = <String>[];
     if (season.voteAverage != null && season.voteAverage!.isNotEmpty) {
-      lines.add('Rating ${_formatRating(season.voteAverage)}');
+      lines.add('Rating ${formatRating(season.voteAverage)}');
     }
     if (season.episodeCount != null) {
       lines.add('${season.episodeCount} episodes');
@@ -311,7 +311,7 @@ class _SeriesInfoCard extends StatelessWidget {
         children: [
           if (lines.isNotEmpty)
             Text(
-              lines.join(' • '),
+              lines.join(' | '),
               style: const TextStyle(color: Colors.white70),
             ),
           if (season.overview != null && season.overview!.isNotEmpty) ...[
@@ -368,78 +368,21 @@ class _SeriesFallbackDetails extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 16),
-        _SeriesInfoRow(label: 'Genre', value: details?.genre ?? series.genre),
-        _SeriesInfoRow(
+        LabeledValueRow(label: 'Genre', value: details?.genre ?? series.genre),
+        LabeledValueRow(
           label: 'Rating',
-          value: _formatNullableRating(details?.rating ?? series.rating),
+          value: formatNullableRating(details?.rating ?? series.rating),
         ),
-        _SeriesInfoRow(
+        LabeledValueRow(
           label: 'Release',
           value: details?.releaseDate ?? series.year,
         ),
-        _SeriesInfoRow(
+        LabeledValueRow(
           label: 'Director',
           value: details?.director ?? series.director,
         ),
-        _SeriesInfoRow(label: 'Cast', value: details?.cast ?? series.cast),
+        LabeledValueRow(label: 'Cast', value: details?.cast ?? series.cast),
       ],
     );
   }
-}
-
-class _SeriesInfoRow extends StatelessWidget {
-  const _SeriesInfoRow({required this.label, required this.value});
-
-  final String label;
-  final String? value;
-
-  @override
-  Widget build(BuildContext context) {
-    final resolvedValue = value;
-    if (resolvedValue == null || resolvedValue.trim().isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 84,
-            child: Text(
-              label,
-              style: const TextStyle(
-                color: Colors.white54,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              resolvedValue,
-              style: const TextStyle(color: Colors.white),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-String _formatRating(String? value) {
-  final rating = double.tryParse(value ?? '');
-  if (rating == null) {
-    return value ?? '';
-  }
-
-  return rating.toStringAsFixed(2);
-}
-
-String? _formatNullableRating(String? value) {
-  if (value == null || value.trim().isEmpty) {
-    return null;
-  }
-
-  return _formatRating(value);
 }

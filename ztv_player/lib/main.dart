@@ -3,11 +3,9 @@ import 'dart:async';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:ztv_player/helpers/theme.dart';
 import 'package:ztv_player/models/live_tv_channel.dart';
-import 'package:ztv_player/models/episode.dart';
 import 'package:ztv_player/models/epg_listing.dart';
 import 'package:ztv_player/models/live_tv_category.dart';
 import 'package:ztv_player/models/playlist.dart';
-import 'package:ztv_player/models/season.dart';
 import 'package:ztv_player/models/series.dart';
 import 'package:ztv_player/models/series_category.dart';
 import 'package:ztv_player/models/vod_category.dart';
@@ -97,8 +95,6 @@ class _BootstrapScreenState extends State<_BootstrapScreen> {
     await Hive.openBox<VodMovie>('vod_movies');
     await Hive.openBox<SeriesCategory>('series_categories');
     await Hive.openBox<Series>('series');
-    await Hive.openBox<Season>('seasons');
-    await Hive.openBox<Episode>('episodes');
     await Hive.openBox('settings');
 
     final settings = Hive.box('settings');
@@ -142,12 +138,6 @@ class _BootstrapScreenState extends State<_BootstrapScreen> {
     }
     if (!Hive.isAdapterRegistered(6)) {
       Hive.registerAdapter(SeriesAdapter());
-    }
-    if (!Hive.isAdapterRegistered(7)) {
-      Hive.registerAdapter(SeasonAdapter());
-    }
-    if (!Hive.isAdapterRegistered(8)) {
-      Hive.registerAdapter(EpisodeAdapter());
     }
   }
 }

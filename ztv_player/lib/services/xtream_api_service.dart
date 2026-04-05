@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'dart:developer' as developer;
 
 import 'package:dio/dio.dart';
+import 'package:ztv_player/helpers/network_url.dart';
 import 'package:ztv_player/models/epg_listing.dart';
 import 'package:ztv_player/models/epg_response.dart';
 import 'package:ztv_player/models/live_tv_category.dart';
@@ -71,10 +73,13 @@ class XtreamApiService {
       action: 'get_live_streams',
     );
 
-    return data
-        .map((item) => LiveTvChannel.fromJson(Map<String, dynamic>.from(item)))
-        .where((channel) => channel.id.trim().isNotEmpty)
-        .toList();
+    return _parseListItems(
+      data,
+      parser: (item) => LiveTvChannel.fromJson(item),
+      itemLabel: 'live channel',
+      isValid: (channel) => channel.id.trim().isNotEmpty,
+      emptyErrorMessage: 'Server returned live channels, but none could be parsed.',
+    );
   }
 
   Future<List<EpgListing>> fetchShortEpg({
@@ -140,10 +145,13 @@ class XtreamApiService {
       action: 'get_vod_streams',
     );
 
-    return data
-        .map((item) => VodMovie.fromJson(Map<String, dynamic>.from(item)))
-        .where((movie) => movie.id.trim().isNotEmpty)
-        .toList();
+    return _parseListItems(
+      data,
+      parser: (item) => VodMovie.fromJson(item),
+      itemLabel: 'movie',
+      isValid: (movie) => movie.id.trim().isNotEmpty,
+      emptyErrorMessage: 'Server returned movies, but none could be parsed.',
+    );
   }
 
   Future<VodDetails> fetchVodDetails({
@@ -196,10 +204,13 @@ class XtreamApiService {
       action: 'get_series',
     );
 
-    return data
-        .map((item) => Series.fromJson(Map<String, dynamic>.from(item)))
-        .where((series) => series.id.trim().isNotEmpty)
-        .toList();
+    return _parseListItems(
+      data,
+      parser: (item) => Series.fromJson(item),
+      itemLabel: 'series item',
+      isValid: (series) => series.id.trim().isNotEmpty,
+      emptyErrorMessage: 'Server returned series, but none could be parsed.',
+    );
   }
 
   Future<SeriesDetails> fetchSeriesDetails({
@@ -235,11 +246,91 @@ class XtreamApiService {
       password: password,
       action: action,
     );
-    if (data is! List) {
+    final normalized = _extractListPayload(data);
+    if (normalized == null) {
       throw Exception('Invalid response for $action.');
     }
 
-    return data;
+    return normalized;
+  }
+
+  List<dynamic>? _extractListPayload(dynamic data) {
+    if (data is List) {
+      return data;
+    }
+
+    if (data is! Map) {
+      return null;
+    }
+
+    const candidateKeys = <String>[
+      'data',
+      'results',
+      'items',
+      'channels',
+      'live_streams',
+      'available_channels',
+      'movies',
+      'series',
+      'categories',
+    ];
+
+    for (final key in candidateKeys) {
+      final value = data[key];
+      if (value is List) {
+        return value;
+      }
+    }
+
+    return null;
+  }
+
+  List<T> _parseListItems<T>(
+    List<dynamic> data, {
+    required T Function(Map<String, dynamic> item) parser,
+    required String itemLabel,
+    required bool Function(T item) isValid,
+    required String emptyErrorMessage,
+  }) {
+    final parsedItems = <T>[];
+    var skippedItems = 0;
+
+    for (final item in data) {
+      if (item is! Map) {
+        skippedItems++;
+        continue;
+      }
+
+      try {
+        final parsed = parser(Map<String, dynamic>.from(item));
+        if (isValid(parsed)) {
+          parsedItems.add(parsed);
+        } else {
+          skippedItems++;
+        }
+      } catch (error, stackTrace) {
+        skippedItems++;
+        developer.log(
+          'Skipping malformed $itemLabel item.',
+          name: 'XtreamApiService',
+          error: error,
+          stackTrace: stackTrace,
+        );
+      }
+    }
+
+    if (parsedItems.isEmpty && data.isNotEmpty) {
+      throw Exception(emptyErrorMessage);
+    }
+
+    if (skippedItems > 0) {
+      developer.log(
+        'Skipped $skippedItems malformed $itemLabel item(s).',
+        name: 'XtreamApiService',
+      );
+    }
+
+    return parsedItems;
   }
 
   Future<List<EpgListing>> _fetchEpg({
@@ -268,19 +359,7 @@ class XtreamApiService {
   }
 
   String _apiUrl(String server) {
-    var normalized = server.trim();
-    if (normalized.endsWith('/')) {
-      normalized = normalized.substring(0, normalized.length - 1);
-    }
-
-    if (normalized.endsWith('/player_api.php')) {
-      return normalized;
-    }
-
-    if (normalized.endsWith('/get.php')) {
-      normalized = normalized.substring(0, normalized.length - '/get.php'.length);
-    }
-
+    final normalized = normalizeServerUrlForDevice(server);
     return '$normalized/player_api.php';
   }
 
@@ -364,15 +443,53 @@ class XtreamApiService {
     }
 
     final start = starts.first;
-    final firstChar = raw[start];
-    final endChar = firstChar == '{' ? '}' : ']';
-    final end = raw.lastIndexOf(endChar);
+    final extracted = _extractBalancedJson(raw, start);
+    return extracted ?? raw.substring(start);
+  }
 
-    if (end <= start) {
-      return raw.substring(start);
+  String? _extractBalancedJson(String raw, int start) {
+    final opening = raw[start];
+    final closing = opening == '{' ? '}' : ']';
+    var depth = 0;
+    var inString = false;
+    var escaping = false;
+
+    for (var index = start; index < raw.length; index++) {
+      final char = raw[index];
+
+      if (escaping) {
+        escaping = false;
+        continue;
+      }
+
+      if (char == r'\') {
+        escaping = true;
+        continue;
+      }
+
+      if (char == '"') {
+        inString = !inString;
+        continue;
+      }
+
+      if (inString) {
+        continue;
+      }
+
+      if (char == opening) {
+        depth++;
+        continue;
+      }
+
+      if (char == closing) {
+        depth--;
+        if (depth == 0) {
+          return raw.substring(start, index + 1);
+        }
+      }
     }
 
-    return raw.substring(start, end + 1);
+    return null;
   }
 
   String _sanitizeJson(String raw) {

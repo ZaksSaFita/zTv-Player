@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:ztv_player/helpers/media_format.dart';
 import 'package:ztv_player/helpers/sort.dart';
 import 'package:ztv_player/helpers/theme.dart';
 import 'package:ztv_player/models/series.dart';
@@ -194,11 +195,10 @@ class _SeriesCategoryScreenState extends State<SeriesCategoryScreen> {
 
   String? _seriesSubtitle(Series series) {
     final parts = <String>[];
-  
     if (series.genre != null && series.genre!.isNotEmpty) {
       parts.add(series.genre!);
     }
-    return parts.isEmpty ? null : parts.join(' • ');
+    return parts.isEmpty ? null : parts.join(' | ');
   }
 
   String? _seriesBadge(Series series) {
@@ -207,18 +207,9 @@ class _SeriesCategoryScreenState extends State<SeriesCategoryScreen> {
       parts.add(series.year!);
     }
     if (series.rating != null && series.rating!.isNotEmpty) {
-      parts.add(_formatRating(series.rating));
+      parts.add(formatRating(series.rating));
     }
-    return parts.isEmpty ? null : parts.join('  ·  ');
-  }
-
-  String _formatRating(String? value) {
-    final rating = double.tryParse(value ?? '');
-    if (rating == null) {
-      return value ?? '';
-    }
-
-    return rating.toStringAsFixed(2);
+    return parts.isEmpty ? null : parts.join(' | ');
   }
 
   void _openSeries(BuildContext context, Series series) {

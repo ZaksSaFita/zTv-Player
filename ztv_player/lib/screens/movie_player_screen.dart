@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:better_player_plus/better_player_plus.dart';
+import 'package:ztv_player/helpers/media_format.dart';
 import 'package:ztv_player/models/vod_details.dart';
 import 'package:ztv_player/models/vod_movie.dart';
 import 'package:ztv_player/services/favorites_service.dart';
@@ -144,7 +145,7 @@ class _MovieDetailsContent extends StatelessWidget {
             _MovieMetaChip(label: 'Genre', value: details.genre),
             _MovieMetaChip(
               label: 'Rating',
-              value: _formatNullableRating(details.rating ?? movie.rating),
+              value: formatNullableRating(details.rating ?? movie.rating),
             ),
             _MovieMetaChip(
               label: 'Release',
@@ -250,7 +251,7 @@ class _MovieFallbackDetails extends StatelessWidget {
           children: [
             _MovieMetaChip(
               label: 'Rating',
-              value: _formatNullableRating(movie.rating),
+              value: formatNullableRating(movie.rating),
             ),
             _MovieMetaChip(label: 'Year', value: movie.year),
             _MovieMetaChip(
@@ -343,19 +344,3 @@ class _MovieInfoSection extends StatelessWidget {
   }
 }
 
-String _formatRating(String? value) {
-  final rating = double.tryParse(value ?? '');
-  if (rating == null) {
-    return value ?? '';
-  }
-
-  return rating.toStringAsFixed(2);
-}
-
-String? _formatNullableRating(String? value) {
-  if (value == null || value.trim().isEmpty) {
-    return null;
-  }
-
-  return _formatRating(value);
-}

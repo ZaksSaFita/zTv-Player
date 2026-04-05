@@ -14,7 +14,6 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  final Box settingsBox = Hive.box('settings');
   final SettingsService _settingsService = const SettingsService();
   final PlaylistService _playlistService = PlaylistService();
   String? selectedPlaylistId;
@@ -31,8 +30,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _switchTheme(AppThemeType type) {
-    AppTheme.notifier.value = type;
-    settingsBox.put('theme', type.index);
+    _settingsService.saveTheme(type);
   }
 
   Future<void> _setCurrentPlaylist(Playlist? playlist) async {
@@ -254,6 +252,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 TextField(
                   controller: passwordController,
+                  obscureText: true,
                   decoration: const InputDecoration(labelText: 'Password'),
                 ),
               ],
@@ -511,7 +510,10 @@ class _PlaylistAccountCard extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           _InfoRow(label: 'Username', value: playlist.username),
-          _InfoRow(label: 'Password', value: playlist.password),
+          _InfoRow(
+            label: 'Password',
+            value: _maskedPassword(playlist.password),
+          ),
           _InfoRow(label: 'Server', value: playlist.server),
           _InfoRow(
             label: 'Exp Date',
@@ -533,6 +535,19 @@ class _PlaylistAccountCard extends StatelessWidget {
     final hour = value.hour.toString().padLeft(2, '0');
     final minute = value.minute.toString().padLeft(2, '0');
     return '$day.$month.$year $hour:$minute';
+  }
+
+  static String _maskedPassword(String value) {
+    if (value.isEmpty) {
+      return 'Unavailable';
+    }
+
+    if (value.length <= 2) {
+      return '*' * value.length;
+    }
+
+    final visibleTail = value.substring(value.length - 2);
+    return '${'*' * (value.length - 2)}$visibleTail';
   }
 }
 

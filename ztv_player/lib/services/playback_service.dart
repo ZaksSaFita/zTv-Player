@@ -1,3 +1,4 @@
+import 'package:ztv_player/helpers/network_url.dart';
 import 'package:ztv_player/models/episode.dart';
 import 'package:ztv_player/models/epg_listing.dart';
 import 'package:ztv_player/models/live_tv_channel.dart';
@@ -83,28 +84,11 @@ class PlaybackService {
       return null;
     }
 
-    return trimmed;
+    return normalizeDirectStreamUrlForDevice(trimmed);
   }
 
   String _normalizedServer(String server) {
-    var normalized = server.trim();
-
-    if (normalized.endsWith('/')) {
-      normalized = normalized.substring(0, normalized.length - 1);
-    }
-
-    if (normalized.endsWith('/player_api.php')) {
-      normalized = normalized.substring(
-        0,
-        normalized.length - '/player_api.php'.length,
-      );
-    }
-
-    if (normalized.endsWith('/get.php')) {
-      normalized = normalized.substring(0, normalized.length - '/get.php'.length);
-    }
-
-    return normalized;
+    return normalizeServerUrlForDevice(server);
   }
 
   int _archiveDurationMinutes(EpgListing listing) {

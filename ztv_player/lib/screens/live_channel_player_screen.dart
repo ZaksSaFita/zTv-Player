@@ -76,15 +76,7 @@ class _LiveChannelPlayerScreenState extends State<LiveChannelPlayerScreen> {
       ),
       content: _LiveChannelDetailContent(
         channel: widget.channel,
-        streamAvailable: streamUrl != null && streamUrl.isNotEmpty,
         epgService: widget.epgService,
-        selectedArchiveListing: _selectedArchiveListing,
-        onArchiveSelected: (listing) {
-          setState(() => _selectedArchiveListing = listing);
-        },
-        onLiveSelected: () {
-          setState(() => _selectedArchiveListing = null);
-        },
       ),
     );
   }
@@ -103,19 +95,11 @@ class _LiveChannelDetailContent extends StatelessWidget {
 
   const _LiveChannelDetailContent({
     required this.channel,
-    required this.streamAvailable,
     required this.epgService,
-    required this.selectedArchiveListing,
-    required this.onArchiveSelected,
-    required this.onLiveSelected,
   });
 
   final LiveTvChannel channel;
-  final bool streamAvailable;
   final EpgService epgService;
-  final EpgListing? selectedArchiveListing;
-  final ValueChanged<EpgListing> onArchiveSelected;
-  final VoidCallback onLiveSelected;
 
   @override
   Widget build(BuildContext context) {

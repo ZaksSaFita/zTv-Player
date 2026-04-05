@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:ztv_player/helpers/media_format.dart';
 import 'package:ztv_player/helpers/sort.dart';
 import 'package:ztv_player/helpers/theme.dart';
 import 'package:ztv_player/models/vod_category.dart';
@@ -172,7 +173,6 @@ class _MovieCategoryScreenState extends State<MovieCategoryScreen> {
                               title: movie.name,
                               subtitle: _movieSubtitle(movie),
                               imageUrl: movie.logoUrl,
-                            //  badge: _movieBadge(movie),
                               fallbackIcon: Icons.movie_creation_outlined,
                               accentColor: Colors.red,
                               onTap: () => _openMovie(context, movie),
@@ -194,22 +194,12 @@ class _MovieCategoryScreenState extends State<MovieCategoryScreen> {
   String? _movieSubtitle(VodMovie movie) {
     final parts = <String>[];
     if (movie.rating != null && movie.rating!.isNotEmpty) {
-      parts.add('Rating ${_formatRating(movie.rating)}');
+      parts.add('Rating ${formatRating(movie.rating)}');
     }
     if (movie.categoryId.isNotEmpty) {
       parts.add('Movie');
     }
-    return parts.isEmpty ? null : parts.join(' • ');
-  }
-
-
-  String _formatRating(String? value) {
-    final rating = double.tryParse(value ?? '');
-    if (rating == null) {
-      return value ?? '';
-    }
-
-    return rating.toStringAsFixed(2);
+    return parts.isEmpty ? null : parts.join(' | ');
   }
 
   void _openMovie(BuildContext context, VodMovie movie) {

@@ -5,6 +5,7 @@ import 'package:ztv_player/models/epg_listing.dart';
 import 'package:ztv_player/services/favorites_service.dart';
 import 'package:ztv_player/services/playback_service.dart';
 import 'package:ztv_player/widgets/enhanced_video_player.dart';
+import 'package:ztv_player/widgets/labeled_value_row.dart';
 import 'package:ztv_player/widgets/media_detail_scaffold.dart';
 
 class LiveArchivePlayerScreen extends StatefulWidget {
@@ -72,13 +73,13 @@ class _LiveArchivePlayerScreenState extends State<LiveArchivePlayerScreen> {
         children: [
           _ArchiveInfoCard(channel: widget.channel, listing: widget.listing),
           const SizedBox(height: 16),
-          _ArchiveRow(label: 'Stream ID', value: widget.channel.id),
-          _ArchiveRow(
+          LabeledValueRow(label: 'Stream ID', value: widget.channel.id),
+          LabeledValueRow(
             label: 'Time',
             value:
                 '${_formatTime(widget.listing.start)} - ${_formatTime(widget.listing.end)}',
           ),
-          _ArchiveRow(
+          LabeledValueRow(
             label: 'Archive',
             value: widget.listing.hasArchive ? 'Available' : 'Unavailable',
           ),
@@ -134,37 +135,6 @@ class _ArchiveInfoCard extends StatelessWidget {
               style: const TextStyle(color: Colors.white70),
             ),
           ],
-        ],
-      ),
-    );
-  }
-}
-
-class _ArchiveRow extends StatelessWidget {
-  const _ArchiveRow({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 84,
-            child: Text(
-              label,
-              style: const TextStyle(
-                color: Colors.white54,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(value, style: const TextStyle(color: Colors.white)),
-          ),
         ],
       ),
     );
