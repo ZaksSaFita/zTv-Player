@@ -1,63 +1,71 @@
 # zTv Player
 
-`zTv Player` je Flutter IPTV/Xtream Codes player sa podrskom za:
+<p align="center">
+  <img src="assets/images/zTv_logo.png" alt="zTv Player logo" width="180" />
+</p>
 
-- vise playlist-a
-- Live TV kategorije i kanale
-- Movies i Series kataloge
-- EPG ucitavanje i archive playback
-- lokalno cuvanje aktivne playlist-e preko Hive storage-a
+<p align="center">
+  A modern <b>Flutter IPTV / Xtream Codes</b> player for Live TV, Movies, and Series with local playlist storage, EPG support, and a multi-playlist workflow.
+</p>
 
-## Trenutno stanje
+## ✨ Overview
 
-Projekat je funkcionalan, ali je u toku cleanup i refaktorisanje codebase-a. Fokus trenutnog rada je:
+`zTv Player` is a Flutter application for IPTV playback using `Xtream Codes` credentials. It is built to help users quickly create a playlist, keep it stored locally, and browse content in a clean and structured way.
 
-- smanjenje duplikacije u UI sloju
-- uklanjanje mrtvih ili nedovrsenih dijelova arhitekture
-- poboljsanje sigurnosti i preglednosti settings toka
-- uvodjenje stvarnih testova umjesto template testova
+## 🚀 Features
 
-## Tehnologije
+- 📺 multiple playlist support
+- 🗂️ Live TV categories and channels
+- 🎬 Movies catalog and playback
+- 📚 Series catalog with seasons and episodes
+- 🕒 EPG loading and archive playback
+- 💾 local persistence with `Hive`
+- 🔄 playlist reload and edit flow
+- 🔍 search, sorting, and content view switching
+- 🎨 theme switching from settings
+
+## 🧰 Tech Stack
 
 - `Flutter`
-- `Dio` za HTTP komunikaciju
-- `Hive` i `hive_flutter` za lokalni storage
-- `json_serializable` i `json_annotation` za modele
-- `better_player_plus` za video playback
-- `cached_network_image` za remote slike/postere
+- `Dart`
+- `Dio` for HTTP communication
+- `Hive` and `hive_flutter` for local storage
+- `json_serializable` and `json_annotation` for models
+- `better_player_plus` for video playback
+- `cached_network_image` for posters and remote images
 
-## Struktura projekta
+## 🗂️ Project Structure
 
-- `lib/main.dart`
-  Startup, Hive bootstrap i root navigation.
-- `lib/models`
-  Domenski modeli za playlist-e, Live TV, VOD, series i EPG.
-- `lib/services`
-  API, playback, favorites, settings i content servisni sloj.
-- `lib/storage`
-  Repository logika za playlist persistence i aktivni snapshot.
-- `lib/screens`
-  Glavni UI flow za playlist setup, browsing i playback.
-- `lib/widgets`
-  Reusable UI komponente i shared content listing sloj.
-- `test`
-  Unit i widget testovi.
+- `lib/main.dart`  
+  App startup, Hive bootstrap, theme loading, and root navigation.
+- `lib/models`  
+  Domain models for playlists, Live TV, VOD, series, and EPG.
+- `lib/services`  
+  API, playback, settings, and playlist orchestration logic.
+- `lib/storage`  
+  Repository layer for playlist persistence and active snapshot handling.
+- `lib/screens`  
+  Main UI flow for playlist setup, browsing, and playback.
+- `lib/widgets`  
+  Reusable UI components and shared content presentation widgets.
+- `test`  
+  Unit tests for helpers, services, and storage logic.
 
-## Glavni tok aplikacije
+## 🧭 Main App Flow
 
-1. Aplikacija inicijalizuje Hive i otvara lokalne boxeve.
-2. Aktivna playlist-a se ucitava iz storage-a.
-3. Snapshot aktivne playlist-e se hidrira u lokalne content boxeve.
-4. Screenovi citaju te boxeve i renderuju Live TV, Movies i Series sekcije.
-5. Detalji i playback koriste aktivnu playlist-u za pozive prema Xtream API-ju.
+1. The app initializes Hive and opens local boxes.
+2. The active playlist is restored from storage.
+3. The active playlist snapshot is hydrated into local content boxes.
+4. Screens read from those boxes and render Live TV, Movies, and Series sections.
+5. Detail pages and playback use the active playlist to resolve Xtream API stream URLs.
 
-## Pokretanje projekta
+## ⚡ Getting Started
 
-1. Instaliraj Flutter SDK.
-2. Pokreni `flutter pub get`.
-3. Pokreni aplikaciju sa `flutter run`.
+1. Install the Flutter SDK.
+2. Run `flutter pub get`.
+3. Start the app with `flutter run`.
 
-## Korisne komande
+## 🛠️ Useful Commands
 
 - `flutter pub get`
 - `flutter run`
@@ -65,15 +73,15 @@ Projekat je funkcionalan, ali je u toku cleanup i refaktorisanje codebase-a. Fok
 - `flutter analyze`
 - `dart run build_runner build --delete-conflicting-outputs`
 
-## Napomene za razvoj
+## ⚠️ Development Notes
 
-- Aktivna playlist-a se trenutno cuva lokalno.
-- Neki serveri vracaju nekonzistentan JSON, pa `XtreamApiService` ima dodatnu sanitizaciju response-a.
-- Projekat trenutno nema zavrsen CI signal u ovom okruzenju jer su `flutter analyze` i `flutter test` spori i timeout-uju u terminal sesiji.
+- The active playlist is currently stored locally.
+- Some IPTV servers return inconsistent JSON, so `XtreamApiService` includes additional response sanitization.
+- The project is already functional, but the codebase is still going through cleanup and refactoring.
 
-## Prioriteti za naredni rad
+## 🛣️ Current Priorities
 
-- dodatni testovi za services i repository sloj
-- sigurnije cuvanje osjetljivih podataka
-- uklanjanje preostalih dupliranih flow-ova u player/detail screenovima
-- zamjena krhkih package internal import zavisnosti stabilnijim API-jem
+- broader test coverage for services and repository logic
+- safer handling of sensitive data
+- reducing remaining duplicated flows in player and detail screens
+- replacing fragile package-internal dependencies with more stable APIs
